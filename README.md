@@ -9,7 +9,7 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 ## Directory Structure
 
 - `claude-skills/` - Skills for Claude (claude.ai)
-- `claude-code-skills/` - Skills for Claude Code (coming soon)
+- `claude-code-skills/` - Skills for Claude Code
 
 ## Available Skills
 
@@ -17,8 +17,14 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 
 | Skill | Description |
 |-------|-------------|
-| [ci-fixer](./claude-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
 | [travel-assistant](./claude-skills/travel-assistant/SKILL.md) | Travel assistant for searching flights and hotels |
+
+### Claude Code Skills
+
+| Skill | Description |
+|-------|-------------|
+| [ci-fixer](./claude-code-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
+| [commit](./claude-code-skills/commit/SKILL.md) | Create atomic commits with clear, descriptive messages following WordPress core style |
 
 ## Installation
 
