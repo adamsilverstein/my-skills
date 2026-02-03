@@ -134,7 +134,7 @@ Before finalizing the commit:
 - [ ] Subject has no trailing period
 - [ ] Commit addresses only ONE concern
 - [ ] Body explains why (if change isn't self-evident)
-- [ ] Co-Authored-By line is included
+- [ ] Co-Authored-By line is not included
 
 ## Quick Reference
 
