@@ -6,11 +6,18 @@ A collection of custom skills for Claude Code.
 
 Skills are reusable prompts and workflows that extend Claude Code's capabilities. Each skill is defined in a `SKILL.md` file within its own directory.
 
+## Directory Structure
+
+- `claude-skills/` - Skills for Claude (claude.ai)
+- `claude-code-skills/` - Skills for Claude Code (coming soon)
+
 ## Available Skills
+
+### Claude Skills
 
 | Skill | Description |
 |-------|-------------|
-| [travel-assistant](./travel-assistant/SKILL.md) | Travel assistant for searching flights and hotels |
+| [travel-assistant](./claude-skills/travel-assistant/SKILL.md) | Travel assistant for searching flights and hotels |
 
 ## Usage
 
