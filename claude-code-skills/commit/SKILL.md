@@ -75,10 +75,10 @@ Split into multiple commits when changes include:
    Body explaining why this change was made. Focus on the
    reasoning and context, not describing what the code does.
 
-   Co-Authored-By: Claude <author> <noreply@anthropic.com>
    EOF
    )"
    ```
+6. You should not add a 'co-authored by' byline.
 
 ## Examples
 
