@@ -20,6 +20,12 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 | [ci-fixer](./claude-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
 | [travel-assistant](./claude-skills/travel-assistant/SKILL.md) | Travel assistant for searching flights and hotels |
 
+### Claude Code Skills
+
+| Skill | Description |
+|-------|-------------|
+| [commit](./claude-code-skills/commit/SKILL.md) | Create atomic commits with clear, descriptive messages following WordPress core style |
+
 ## Installation
 
 Use the included installer script to add skills to Claude Code or Claude Desktop.
