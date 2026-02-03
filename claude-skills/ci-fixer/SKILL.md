@@ -121,7 +121,7 @@ When monitoring CI, use this pattern:
 
 ```bash
 # Check if all required checks pass
-gh pr checks [PR_NUMBER] --json name,state,conclusion | jq '.[] | select(.conclusion != "success" and .conclusion != "skipped" and .state != "pending")'
+gh pr checks [PR_NUMBER] --json name,state,conclusion | jq '.[] | select(.state == "completed" and .conclusion != "success" and .conclusion != "skipped")'
 ```
 
 **Status interpretation:**
