@@ -76,8 +76,10 @@ list_skills() {
         if [[ -d "$full_path" ]]; then
             for skill_dir in "$full_path"/*/; do
                 if [[ -f "${skill_dir}SKILL.md" ]]; then
-                    local skill_name=$(basename "$skill_dir")
-                    local description=$(grep -A1 '^description:' "${skill_dir}SKILL.md" 2>/dev/null | head -1 | sed 's/^description: *"//' | sed 's/"$//' | cut -c1-60)
+                    local skill_name
+                    local description
+                    skill_name="$(basename "$skill_dir")"
+                    description="$(grep -A1 '^description:' "${skill_dir}SKILL.md" 2>/dev/null | head -1 | sed 's/^description: *"//' | sed 's/"$//' | cut -c1-60)"
                     skills+=("$skill_name|$dir|$description")
                 fi
             done
@@ -115,7 +117,8 @@ match_skills() {
     local matched=()
 
     while IFS= read -r skill_info; do
-        local skill_name=$(echo "$skill_info" | cut -d'|' -f1)
+        local skill_name
+        skill_name=$(echo "$skill_info" | cut -d'|' -f1)
         # shellcheck disable=SC2053
         if [[ "$skill_name" == $pattern ]]; then
             matched+=("$skill_info")
@@ -174,7 +177,8 @@ install_to_code() {
     # Check if already installed (use -L for symlinks, -e for regular files/dirs)
     if [[ -L "$target_path" || -e "$target_path" ]]; then
         if [[ -L "$target_path" ]]; then
-            local current_link=$(readlink "$target_path")
+            local current_link
+            current_link=$(readlink -- "$target_path")
             if [[ "$current_link" == "$skill_path" ]]; then
                 print_warning "Skill '$skill_name' is already installed (symlinked to same location)."
                 return 0
@@ -231,7 +235,8 @@ install_to_desktop() {
     fi
 
     # Create ZIP file
-    local parent_dir=$(dirname "$skill_path")
+    local parent_dir
+    parent_dir=$(dirname "$skill_path")
     (cd "$parent_dir" && zip -r "$zip_path" "$skill_name" -x "*.DS_Store" -x "*__MACOSX*") > /dev/null
 
     print_success "Created ZIP for Claude Desktop: $zip_path"
@@ -250,7 +255,20 @@ uninstall_skill() {
 
     local target_path="$CODE_SKILLS_DIR/$skill_name"
 
-    if [[ ! -e "$target_path" ]]; then
+    # Check for dangling symlink (symlink exists but target does not)
+    if [[ -L "$target_path" && ! -e "$target_path" ]]; then
+        print_warning "Skill '$skill_name' has a dangling symlink (target no longer exists)."
+        if confirm "Do you want to remove the stale symlink?"; then
+            rm -f "$target_path"
+            print_success "Removed dangling symlink for '$skill_name'."
+        else
+            print_info "Leaving dangling symlink in place."
+        fi
+        return 0
+    fi
+
+    # Check if not installed (neither file/directory nor symlink exists)
+    if [[ ! -e "$target_path" && ! -L "$target_path" ]]; then
         print_warning "Skill '$skill_name' is not installed in Claude Code."
         return 0
     fi
