@@ -17,6 +17,7 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 
 | Skill | Description |
 |-------|-------------|
+| [ci-fixer](./claude-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
 | [travel-assistant](./claude-skills/travel-assistant/SKILL.md) | Travel assistant for searching flights and hotels |
 
 ## Usage
