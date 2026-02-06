@@ -25,6 +25,7 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 |-------|-------------|
 | [ci-fixer](./claude-code-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
 | [commit](./claude-code-skills/commit/SKILL.md) | Create atomic commits with clear, descriptive messages following WordPress core style |
+| [wp-cli](./claude-code-skills/wp-cli/SKILL.md) | Manage WordPress installations using WP-CLI commands |
 
 ## Installation
 
