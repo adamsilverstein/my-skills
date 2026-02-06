@@ -74,10 +74,10 @@ Split into multiple commits when changes include:
 
    Body explaining why this change was made. Focus on the
    reasoning and context, not describing what the code does.
-
    EOF
    )"
    ```
+
 6. You should not add a 'co-authored by' byline.
 
 ## Examples
@@ -123,6 +123,16 @@ Fix navigation bug.
 
 # Describes what, not why
 Change maxLength from 50 to 100
+
+# Co-authored by line included (should be avoided in commit messages)
+
+Examples of lines that should NOT be included in the commit message:
+```
+Generated with [Claude Code](https://claude.ai/code)
+via [Happy](https://happy.engineering)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+Co-Authored-By: Happy <yesreply@happy.engineering>
 ```
 
 ## Verification Checklist
@@ -134,7 +144,7 @@ Before finalizing the commit:
 - [ ] Subject has no trailing period
 - [ ] Commit addresses only ONE concern
 - [ ] Body explains why (if change isn't self-evident)
-- [ ] Co-Authored-By line is not included
+- [ ] Co-Authored-By line is NOT included
 
 ## Quick Reference
 
