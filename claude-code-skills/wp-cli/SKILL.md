@@ -34,8 +34,8 @@ wp core update-db
 
 # Download and install WordPress
 wp core download
-wp core config --dbname=wordpress --dbuser=root --dbpass=password --dbhost=localhost
-wp core install --url=example.com --title="Site Title" --admin_user=admin --admin_email=admin@example.com --admin_password=secret
+wp config create --dbname=wordpress --dbuser=root --prompt=dbpass --dbhost=localhost
+wp core install --url=example.com --title="Site Title" --admin_user=admin --admin_email=admin@example.com --prompt=admin_password
 ```
 
 ## Plugin Management
