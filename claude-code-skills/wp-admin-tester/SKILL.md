@@ -5,7 +5,7 @@ description: "Debug issues in wp-admin on a local WordPress dev environment. Use
 
 # WP-Admin Local Debugger
 
-Debug and test WordPress admin flows in a local development environment. Combines REST API calls, browser automation, PHP log tailing, and console error capture to diagnose issues end-to-end.
+Debug and test WordPress admin flows in a local development environment. Combines browser automation, PHP log tailing, and console error capture to diagnose issues end-to-end.
 
 ## Local Environment
 
@@ -18,47 +18,6 @@ Debug and test WordPress admin flows in a local development environment. Combine
 | Test image | `~/Downloads/IMG_0299.jpg` (or any image the user specifies) |
 
 ## Authentication
-
-### Application Password (Preferred for REST API)
-
-Create an application password once, then reuse it for all REST API calls. This avoids cookie/nonce management.
-
-```bash
-# Create an application password for the admin user via WP-CLI
-wp user application-password create admin "claude-debug" --url=https://wpdev.localhost --porcelain
-```
-
-This outputs the password. Store it and use it in subsequent requests:
-
-```bash
-# Use Basic Auth with application password (APP_PASS is the generated password)
-curl -sk -u "admin:APP_PASS" https://wpdev.localhost/wp-json/wp/v2/posts
-```
-
-If WP-CLI is not available, create the application password via REST API using cookie auth:
-
-```bash
-# Step 1: Log in and capture cookies
-curl -sk -c /tmp/wp-cookies.txt -b /tmp/wp-cookies.txt \
-  -d "log=admin&pwd=password&wp-submit=Log+In&redirect_to=%2Fwp-admin%2F&testcookie=1" \
-  "https://wpdev.localhost/wp-login.php"
-
-# Step 2: Get a nonce from the application passwords page
-NONCE=$(curl -sk -b /tmp/wp-cookies.txt "https://wpdev.localhost/wp-admin/profile.php" \
-  | grep -oP 'id="new_application_password_nonce" value="\K[^"]+' || \
-  curl -sk -b /tmp/wp-cookies.txt "https://wpdev.localhost/wp-admin/authorize-application.php" \
-  | grep -oP '_wpnonce" value="\K[^"]+')
-
-# Step 3: Get a REST API nonce via admin-ajax
-WP_NONCE=$(curl -sk -b /tmp/wp-cookies.txt "https://wpdev.localhost/wp-admin/admin-ajax.php?action=rest-nonce")
-
-# Step 4: Create application password via REST
-APP_PASS=$(curl -sk -b /tmp/wp-cookies.txt \
-  -X POST "https://wpdev.localhost/wp-json/wp/v2/users/me/application-passwords" \
-  -H "X-WP-Nonce: $WP_NONCE" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"claude-debug"}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["password"])')
-```
 
 ### Cookie Auth (For operations needing full admin context)
 
