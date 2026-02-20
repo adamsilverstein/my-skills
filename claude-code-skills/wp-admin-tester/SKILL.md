@@ -49,10 +49,14 @@ NONCE=$(curl -sk -b /tmp/wp-cookies.txt "https://wpdev.localhost/wp-admin/profil
   curl -sk -b /tmp/wp-cookies.txt "https://wpdev.localhost/wp-admin/authorize-application.php" \
   | grep -oP '_wpnonce" value="\K[^"]+')
 
-# Step 3: Create application password via REST
+# Step 3: Get a REST API nonce via admin-ajax
+WP_NONCE=$(curl -sk -b /tmp/wp-cookies.txt "https://wpdev.localhost/wp-admin/admin-ajax.php?action=rest-nonce")
+
+# Step 4: Create application password via REST
 APP_PASS=$(curl -sk -b /tmp/wp-cookies.txt \
   -X POST "https://wpdev.localhost/wp-json/wp/v2/users/me/application-passwords" \
-  -H "X-WP-Nonce: $(curl -sk -b /tmp/wp-cookies.txt https://wpdev.localhost/wp-json/ | python3 -c 'import sys,json; print(json.load(sys.stdin).get("authentication",{}).get("application-passwords",{}).get("endpoints",{}).get("authorization",""))')" \
+  -H "X-WP-Nonce: $WP_NONCE" \
+  -H "Content-Type: application/json" \
   -d '{"name":"claude-debug"}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["password"])')
 ```
 
@@ -113,11 +117,10 @@ POST_ID=$(curl -sk -u "admin:APP_PASS" \
 
 # 2. Upload image attached to the post
 MEDIA_ID=$(curl -sk -u "admin:APP_PASS" \
-  -X POST "https://wpdev.localhost/wp-json/wp/v2/media" \
+  -X POST "https://wpdev.localhost/wp-json/wp/v2/media?post=$POST_ID" \
   -H "Content-Disposition: attachment; filename=IMG_0299.jpg" \
   -H "Content-Type: image/jpeg" \
   --data-binary @"$HOME/Downloads/IMG_0299.jpg" \
-  -F "post=$POST_ID" \
   | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
 
 # 3. Set as featured image
@@ -383,7 +386,8 @@ tail -50 /Applications/MAMP/logs/php_error.log
 # If using Playwright, the console errors are captured automatically
 
 # Check WordPress debug.log if WP_DEBUG_LOG is enabled
-cat /path/to/wordpress/wp-content/debug.log 2>/dev/null | tail -50
+# Replace <site-docroot> with your MAMP site document root, e.g. /Applications/MAMP/htdocs/wpdev
+tail -50 /Applications/MAMP/htdocs/<site-docroot>/wp-content/debug.log 2>/dev/null
 ```
 
 ### 5. Analyze and Fix
