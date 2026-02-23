@@ -5,7 +5,7 @@ description: "Debug issues in wp-admin on a local WordPress dev environment. Use
 
 # WP-Admin Local Debugger
 
-Debug and test WordPress admin flows in a local development environment. Combines browser automation, PHP log tailing, and console error capture to diagnose issues end-to-end.
+Debug and test WordPress admin flows in a local development environment. Combines browser automation, PHP log tailing, and console error capture to diagnose issues end-to-end. This skill focuses exclusively on wp-admin interactions — all testing is done through the browser (Playwright) or direct page fetches with cookie auth.
 
 ## Local Environment
 
@@ -17,18 +17,15 @@ Debug and test WordPress admin flows in a local development environment. Combine
 | PHP error log | `/Applications/MAMP/logs/php_error.log` |
 | Test image | `~/Downloads/IMG_0299.jpg` (or any image the user specifies) |
 
-## Authentication
+## Authentication (Cookie Auth)
 
-### Cookie Auth (For operations needing full admin context)
+All operations use cookie-based authentication, the same way a real admin user interacts with wp-admin.
 
 ```bash
-# Log in and save cookies + capture nonce
+# Log in and save cookies
 curl -sk -c /tmp/wp-cookies.txt -b /tmp/wp-cookies.txt \
   -d "log=admin&pwd=password&wp-submit=Log+In&redirect_to=%2Fwp-admin%2F&testcookie=1" \
   "https://wpdev.localhost/wp-login.php"
-
-# Get the REST API nonce
-WP_NONCE=$(curl -sk -b /tmp/wp-cookies.txt "https://wpdev.localhost/wp-admin/admin-ajax.php?action=rest-nonce")
 ```
 
 ## Core Operations
@@ -41,52 +38,6 @@ curl -sk -b /tmp/wp-cookies.txt "https://wpdev.localhost/wp-admin/edit.php" | he
 
 # Check if a page loads without PHP errors
 curl -sk -b /tmp/wp-cookies.txt -o /dev/null -w "%{http_code}" "https://wpdev.localhost/wp-admin/options-general.php"
-```
-
-### Create a Post
-
-```bash
-# Via REST API with application password
-curl -sk -u "admin:APP_PASS" \
-  -X POST "https://wpdev.localhost/wp-json/wp/v2/posts" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Test Post","content":"<!-- wp:paragraph --><p>Test content</p><!-- /wp:paragraph -->","status":"draft"}'
-```
-
-### Upload an Image
-
-```bash
-# Upload media via REST API
-curl -sk -u "admin:APP_PASS" \
-  -X POST "https://wpdev.localhost/wp-json/wp/v2/media" \
-  -H "Content-Disposition: attachment; filename=IMG_0299.jpg" \
-  -H "Content-Type: image/jpeg" \
-  --data-binary @"$HOME/Downloads/IMG_0299.jpg"
-```
-
-### Upload Image and Attach to Post
-
-```bash
-# 1. Create the post
-POST_ID=$(curl -sk -u "admin:APP_PASS" \
-  -X POST "https://wpdev.localhost/wp-json/wp/v2/posts" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Test Post with Image","content":"Test content","status":"draft"}' \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
-
-# 2. Upload image attached to the post
-MEDIA_ID=$(curl -sk -u "admin:APP_PASS" \
-  -X POST "https://wpdev.localhost/wp-json/wp/v2/media?post=$POST_ID" \
-  -H "Content-Disposition: attachment; filename=IMG_0299.jpg" \
-  -H "Content-Type: image/jpeg" \
-  --data-binary @"$HOME/Downloads/IMG_0299.jpg" \
-  | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
-
-# 3. Set as featured image
-curl -sk -u "admin:APP_PASS" \
-  -X POST "https://wpdev.localhost/wp-json/wp/v2/posts/$POST_ID" \
-  -H "Content-Type: application/json" \
-  -d "{\"featured_media\": $MEDIA_ID}"
 ```
 
 ## Log Monitoring
@@ -200,7 +151,95 @@ await browser.close();
 node /tmp/wp-admin-test.mjs
 ```
 
-### Test Image Upload via Browser
+### Create a Post and Insert an Image in the Block Editor
+
+This tests post creation and image uploading entirely through wp-admin using the block editor:
+
+```javascript
+// /tmp/wp-admin-image-test.mjs
+import { chromium } from 'playwright';
+import path from 'path';
+
+const browser = await chromium.launch({ ignoreHTTPSErrors: true });
+const context = await browser.newContext({ ignoreHTTPSErrors: true });
+const page = await context.newPage();
+
+const consoleErrors = [];
+const networkErrors = [];
+
+page.on('console', msg => {
+  if (msg.type() === 'error') {
+    consoleErrors.push({ text: msg.text(), location: msg.location() });
+  }
+});
+page.on('pageerror', err => {
+  consoleErrors.push({ text: err.message, stack: err.stack });
+});
+page.on('response', response => {
+  if (response.status() >= 400) {
+    networkErrors.push({ url: response.url(), status: response.status() });
+  }
+});
+
+// Log in
+await page.goto('https://wpdev.localhost/wp-login.php');
+await page.fill('#user_login', 'admin');
+await page.fill('#user_pass', 'password');
+await page.click('#wp-submit');
+await page.waitForURL('**/wp-admin/**');
+
+// Create a new post in the block editor
+await page.goto('https://wpdev.localhost/wp-admin/post-new.php');
+await page.waitForLoadState('networkidle');
+await page.waitForTimeout(2000);
+
+// Dismiss the welcome guide if present
+const welcomeButton = page.locator('button:has-text("Get started")');
+if (await welcomeButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+  await welcomeButton.click();
+}
+
+// Type a post title
+await page.locator('[aria-label="Add title"]').fill('Test Post with Image');
+
+// Add an Image block using the slash command inserter
+await page.click('.block-editor-default-block-appender__content');
+await page.keyboard.type('/image');
+await page.waitForTimeout(1000);
+await page.keyboard.press('Enter');
+await page.waitForTimeout(1000);
+
+// Upload an image file via the file input in the Image block
+const fileInput = page.locator('input[type="file"]');
+await fileInput.setInputFiles(path.join(process.env.HOME, 'Downloads', 'IMG_0299.jpg'));
+
+// Wait for the upload to complete
+await page.waitForTimeout(5000);
+
+// Check if the image block now has an image
+const imgElement = page.locator('.wp-block-image img');
+const hasImage = await imgElement.isVisible({ timeout: 10000 }).catch(() => false);
+if (hasImage) {
+  const src = await imgElement.getAttribute('src');
+  console.log('Image uploaded successfully:', src);
+} else {
+  console.log('WARNING: Image may not have uploaded — no img element found in block.');
+}
+
+// Report errors
+console.log(`\nConsole errors: ${consoleErrors.length}`);
+consoleErrors.forEach((err, i) => console.log(`  ${i + 1}. ${err.text}`));
+console.log(`Network errors: ${networkErrors.length}`);
+networkErrors.forEach((err, i) => console.log(`  ${i + 1}. ${err.status} ${err.url}`));
+
+await browser.close();
+```
+
+```bash
+node /tmp/wp-admin-image-test.mjs
+```
+
+### Test Image Upload via Media Library
 
 ```javascript
 // /tmp/wp-admin-upload-test.mjs
@@ -332,9 +371,8 @@ tail -f /Applications/MAMP/logs/php_error.log &
 
 Choose the appropriate method:
 
-- **REST API** (for data operations): Use curl with application password
-- **Browser automation** (for UI/JS issues): Use Playwright script to navigate, interact, and capture console errors
-- **Direct page fetch** (for PHP rendering issues): Use curl with cookies
+- **Browser automation** (for UI/JS issues, interactive flows, image uploads): Use Playwright to navigate, interact, and capture console errors
+- **Direct page fetch** (for PHP rendering issues, HTTP status checks): Use curl with cookies
 
 ### 4. Collect Evidence
 
@@ -367,17 +405,17 @@ tail -50 /Applications/MAMP/htdocs/<site-docroot>/wp-content/debug.log 2>/dev/nu
 | Task | Command |
 |------|---------|
 | Log in (cookies) | `curl -sk -c /tmp/wp-cookies.txt -d "log=admin&pwd=password&wp-submit=Log+In&redirect_to=%2Fwp-admin%2F&testcookie=1" "https://wpdev.localhost/wp-login.php"` |
-| Create app password | `wp user application-password create admin "claude-debug" --url=https://wpdev.localhost --porcelain` |
-| REST API call | `curl -sk -u "admin:APP_PASS" https://wpdev.localhost/wp-json/wp/v2/posts` |
-| Upload image | `curl -sk -u "admin:APP_PASS" -X POST https://wpdev.localhost/wp-json/wp/v2/media -H "Content-Disposition: attachment; filename=IMG_0299.jpg" -H "Content-Type: image/jpeg" --data-binary @"$HOME/Downloads/IMG_0299.jpg"` |
 | Tail PHP log | `tail -f /Applications/MAMP/logs/php_error.log` |
 | Recent PHP errors | `tail -50 /Applications/MAMP/logs/php_error.log` |
 | Check admin page | `curl -sk -b /tmp/wp-cookies.txt -o /dev/null -w "%{http_code}" "https://wpdev.localhost/wp-admin/PAGE"` |
 | Console errors | Run Playwright script (see browser automation section) |
+| Create post + image | Run block editor Playwright script (see browser automation section) |
+| Upload via Media Library | Run media upload Playwright script (see browser automation section) |
 
 ## Important Rules
 
-- Always start by establishing authentication (prefer application passwords for REST API work)
+- All testing is done through wp-admin — use cookie auth for curl requests and Playwright for interactive flows
+- Do not use the REST API or application passwords — this skill is for testing wp-admin interactions only
 - Tail the PHP log before and during reproduction to catch transient errors
 - When using Playwright, always collect both console errors AND network errors (failed requests)
 - Remove all temporary debug code (`error_log`, `console.log`) after investigation
