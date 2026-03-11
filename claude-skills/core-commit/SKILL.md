@@ -211,7 +211,7 @@ Fixes #64096.
 
 When asked to draft a commit message:
 
-1. **Ask for the PR URL** if not provided.
+1. **Ask for the PR URL** if not provided or already known.
 2. **Fetch the PR** to get the title, description, diff summary, and linked Trac ticket.
 3. **Fetch the props bot comment** from the PR.
 4. **Fetch the Trac ticket** to get all participants.
