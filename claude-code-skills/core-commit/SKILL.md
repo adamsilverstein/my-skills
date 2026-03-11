@@ -202,7 +202,7 @@ Overview of changes:
 - Add control over notes with post type supports check
 - Register new note resolution status meta
 
-Props: ristojovanovic, adamsilverstein, jeffpaul, wildworks, mamaduka, swissspidy, timothyblynjacobs, kadamwhite.
+Props ristojovanovic, adamsilverstein, jeffpaul, wildworks, mamaduka, swissspidy, timothyblynjacobs, kadamwhite.
 
 Fixes #64096.
 ```
