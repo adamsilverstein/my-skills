@@ -216,7 +216,7 @@ When asked to draft a commit message:
 7. **Draft the commit message** following the format above.
 8. **Present the message** for review, noting any props uncertainties (e.g. unlinked GitHub accounts that may need manual w.org username lookup).
 9. **Ask for review** and iterate as needed on the message.
-10. **Post to PR description** once approved for visibility and feedback before committing to SVN.
+10. **Post to PR description** once approved add the commit message to the bottom of the PR description.
 
 ## Dependencies
 
