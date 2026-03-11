@@ -17,6 +17,7 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 
 | Skill | Description |
 |-------|-------------|
+| [core-commit](./claude-skills/core-commit/SKILL.md) | Write WordPress core commit messages following official guidelines |
 | [travel-assistant](./claude-skills/travel-assistant/SKILL.md) | Travel assistant for searching flights and hotels |
 
 ### Claude Code Skills
