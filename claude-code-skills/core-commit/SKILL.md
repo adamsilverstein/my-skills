@@ -11,7 +11,7 @@ Draft commit messages for WordPress core following the official commit message g
 
 Before drafting a commit message, gather:
 
-1. **The GitHub PR URL** - to read the PR description, diff, and props bot comment
+1. **The GitHub PR URL** - to read the PR description, diff, and props bot comment. Before asking the user, try to determine the PR URL from the current branch or context if possible.
 2. **The Trac ticket number** - usually linked in the PR description (e.g. `https://core.trac.wordpress.org/ticket/XXXXX`)
 3. **Whether this is a backport** - if so, note the branch and original changeset
 4. **Whether the ticket is being fixed or just referenced** - determines `Fixes` vs `See`
@@ -86,7 +86,6 @@ Combine all usernames from both sources. Rules:
 ## Commit Message Format
 
 ```
-{Ticket Number}
 Component: Brief summary.
 
 Longer description explaining what changed and why. Use backticks for `function_names` and `hook_names`.
@@ -164,7 +163,6 @@ Match this voice and level of detail (based on the committer's established style
 ### Example messages (for tone reference):
 
 ```
-64240
 Notes: trash (or delete) child notes when parent is deleted.
 
 Ensure that when a top level note is trashed (or deleted), all of its replies (children) are also trashed or deleted. If EMPTY_TRASH_DAYS is 0, notes are deleted immediately; otherwise they are marked as trash for later cleanup.
@@ -174,7 +172,6 @@ Fixes #64240.
 ```
 
 ```
-64145
 Editor: Notes should not appear in the context of comments.
 
 Prevent notes from inadvertently showing up in the context of comments - including on the Dashboard recent comments widget and the "Mine" count on the Comments page. Notes are stored as a custom 'note' comment type and this change ensures the note type is only returned when explicitly requested, or when 'all' types are requested.
@@ -189,7 +186,6 @@ Fixes #64152.
 ```
 
 ```
-64096
 Editor: Introduce the PHP-related code for Notes.
 
 Bring the PHP part of the new Notes feature into core for the 6.9 release. See related Gutenberg Issue: https://github.com/WordPress/gutenberg/issues/71826. These changes do not impact any user facing functionality, they simply prepare core for the JavaScript functionality that will come over in a separate sync.
@@ -211,7 +207,7 @@ Fixes #64096.
 
 When asked to draft a commit message:
 
-1. **Ask for the PR URL** if not provided or already known.
+1. **Determine the PR URL** ask the user when unable to determine automatically.
 2. **Fetch the PR** to get the title, description, diff summary, and linked Trac ticket.
 3. **Fetch the props bot comment** from the PR.
 4. **Fetch the Trac ticket** to get all participants.
@@ -219,6 +215,8 @@ When asked to draft a commit message:
 6. **Determine the component** from the Trac ticket or PR title prefix.
 7. **Draft the commit message** following the format above.
 8. **Present the message** for review, noting any props uncertainties (e.g. unlinked GitHub accounts that may need manual w.org username lookup).
+9. **Ask for review** and iterate as needed on the message.
+10. **Post to PR description** once approved for visibility and feedback before committing to SVN.
 
 ## Dependencies
 
