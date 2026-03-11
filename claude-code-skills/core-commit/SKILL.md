@@ -220,6 +220,14 @@ When asked to draft a commit message:
 7. **Draft the commit message** following the format above.
 8. **Present the message** for review, noting any props uncertainties (e.g. unlinked GitHub accounts that may need manual w.org username lookup).
 
+## Dependencies
+
+This skill requires the following CLI tools to be available in your environment:
+
+- **`gh`** — GitHub CLI, used to fetch PR details and props bot comments
+- **`curl`** — used to scrape Trac ticket pages for contributor information
+- **`python3`** — used to parse HTML from Trac ticket pages
+
 ## Important Notes
 
 - Ticket numbers `#NNNNN` and changeset numbers `[NNNNN]` auto-link in Trac and Slack.
