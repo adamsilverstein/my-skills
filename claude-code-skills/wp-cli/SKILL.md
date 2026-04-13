@@ -5,140 +5,76 @@ description: "Run WP-CLI commands to manage WordPress installations. Use when th
 
 # WP-CLI Skill
 
-Manage WordPress installations using WP-CLI commands. Covers core management, plugins, themes, users, database operations, options, cron, and more.
+Manage WordPress installations using WP-CLI: core, plugins, themes, users, database, options, cron, and more.
 
 ## Prerequisites
 
-- WP-CLI must be installed and available as `wp` in PATH
-- Commands must be run from the WordPress root directory (where `wp-config.php` lives) or use `--path=<path>`
-- For remote servers, ensure SSH access is configured
+- `wp` installed and on PATH; run from the WordPress root or pass `--path=<path>`
+- `wp doctor` requires WP-CLI v2.12+ and the separate `wp-cli/doctor-command` package:
+  `wp package install wp-cli/doctor-command:@stable`
+- `wp maintenance-mode` is bundled with WP-CLI (no extra package needed)
 
-## Quick Reference
+## Core
 
 ```bash
-# Verify WP-CLI is available and check WordPress status
 wp --version
 wp core version
 wp core is-installed
-```
-
-## Core Management
-
-```bash
-# Check for updates
 wp core check-update
+wp core update && wp core update-db
+wp core verify-checksums
 
-# Update WordPress core
-wp core update
-wp core update-db
-
-# Download and install WordPress
+# Install fresh (prompts avoid leaking secrets to shell history)
 wp core download
-wp config create --dbname=wordpress --dbuser=root --prompt=dbpass --dbhost=localhost
-wp core install --url=example.com --title="Site Title" --admin_user=admin --admin_email=admin@example.com --prompt=admin_password
+wp config create --dbname=wordpress --dbuser=root --dbhost=localhost --prompt=dbpass
+wp core install --url=example.com --title="Site" --admin_user=admin --admin_email=admin@example.com --prompt=admin_password
 ```
 
-## Plugin Management
+## Plugins & Themes
 
 ```bash
-# List plugins
-wp plugin list
-wp plugin list --status=active
-wp plugin list --update=available
-
-# Install and activate
-wp plugin install <plugin-slug> --activate
-wp plugin activate <plugin-name>
-wp plugin deactivate <plugin-name>
-
-# Update plugins
+wp plugin list [--status=active] [--update=available]
+wp plugin install <slug> --activate
+wp plugin activate|deactivate <name>
 wp plugin update --all
-wp plugin update <plugin-name>
+wp plugin verify-checksums --all
 
-# Search for plugins
-wp plugin search <term> --fields=name,slug,rating
-```
-
-## Theme Management
-
-```bash
-# List themes
 wp theme list
-wp theme list --status=active
-
-# Install and activate
-wp theme install <theme-slug> --activate
-wp theme activate <theme-name>
-
-# Update themes
+wp theme install <slug> --activate
 wp theme update --all
-wp theme update <theme-name>
 ```
 
-## User Management
+## Users
 
 ```bash
-# List users
-wp user list
-wp user list --role=administrator
-
-# Create a user
+wp user list [--role=administrator]
 wp user create <username> <email> --role=<role> --user_pass=<password>
-
-# Update a user
-wp user update <user-id> --display_name="New Name"
-wp user update <user-id> --role=editor
-
-# Delete a user (reassign content)
-wp user delete <user-id> --reassign=<other-user-id>
-
-# Reset password
-wp user update <user-id> --user_pass=<new-password>
+wp user update <id> --role=editor --display_name="Name"
+wp user update <id> --user_pass=<new-password>
+wp user delete <id> --reassign=<other-id>
 ```
 
-## Database Operations
+## Database
 
 ```bash
-# Export / Import
 wp db export backup.sql
 wp db import backup.sql
-
-# Search and replace (always use --dry-run first)
-wp search-replace 'old-string' 'new-string' --dry-run
-wp search-replace 'old-string' 'new-string' --precise --recurse-objects --all-tables
-
-# Run a query
-wp db query "SELECT * FROM wp_options WHERE option_name = 'siteurl';"
-
-# Optimize and repair
+wp db query "SELECT option_value FROM wp_options WHERE option_name='siteurl';"
 wp db optimize
 wp db repair
+
+# Always --dry-run first
+wp search-replace 'old' 'new' --dry-run
+wp search-replace 'old' 'new' --precise --recurse-objects --all-tables
 ```
 
-## Options
+## Options, Cache, Rewrites
 
 ```bash
-# Get / Set options
-wp option get siteurl
-wp option get blogname
-wp option update siteurl 'https://example.com'
-wp option update blogname 'My Site'
-
-# List options matching a pattern
+wp option get|update|delete <name> [value]
 wp option list --search="*cache*"
-
-# Delete an option
-wp option delete <option-name>
-```
-
-## Cache and Transients
-
-```bash
-# Flush caches
 wp cache flush
 wp transient delete --all
-
-# Flush rewrite rules
 wp rewrite flush
 wp rewrite structure '/%postname%/'
 ```
@@ -146,120 +82,67 @@ wp rewrite structure '/%postname%/'
 ## Cron
 
 ```bash
-# List scheduled events
 wp cron event list
-
-# Run all due cron events
 wp cron event run --due-now
-
-# Run a specific cron event
 wp cron event run <hook-name>
-
-# Test WP-Cron
 wp cron test
 ```
 
-## Post and Content Management
+## Posts & Media
 
 ```bash
-# List posts
 wp post list --post_type=post --post_status=publish
-
-# Create a post
-wp post create --post_title='Title' --post_content='Content' --post_status=publish
-
-# Delete a post
-wp post delete <post-id> --force
-
-# Generate test posts
+wp post create --post_title='Title' --post_content='Body' --post_status=publish
+wp post delete <id> --force
 wp post generate --count=10
-```
 
-## Media
-
-```bash
-# Regenerate thumbnails
 wp media regenerate --yes
-
-# Import media from a URL
-wp media import <url>
+wp media import <url-or-path>
 ```
 
-## Maintenance and Troubleshooting
+## Maintenance & Troubleshooting
 
 ```bash
-# Enable/disable maintenance mode
-wp maintenance-mode activate
-wp maintenance-mode deactivate
-
-# Check site health
-wp doctor check --all
-
-# Verify core file integrity
-wp core verify-checksums
-
-# Verify plugin file integrity
-wp plugin verify-checksums --all
-
-# Debug and information
+wp maintenance-mode activate|deactivate|status
+wp doctor check --all            # requires wp-cli/doctor-command package
 wp shell
 wp eval 'echo PHP_VERSION;'
-wp config get
-wp config list
+wp config get|list
 ```
 
 ## Multisite
 
 ```bash
-# List sites in a network
 wp site list
-
-# Create a new site
-wp site create --slug=<site-slug> --title="Site Title"
-
-# Run a command across all sites
+wp site create --slug=<slug> --title="Title"
 wp site list --field=url | xargs -I {} wp option get blogname --url={}
 ```
 
-## Important Rules
+## Rules
 
-- **Always use `--dry-run`** for `search-replace` before running the real command
-- **Always export the database** before destructive operations (`wp db export`)
-- **Use `--yes`** flag cautiously; confirm destructive actions with the user first
-- **Check `wp core is-installed`** before running commands to verify WordPress is accessible
-- **Quote values** that contain spaces or special characters
-- **Use `--fields`** to limit output columns for readability
-- **Use `--format=json`** when you need to parse output programmatically
+- Always `--dry-run` `search-replace` first, and `wp db export` before destructive changes
+- Use `--prompt=<arg>` for passwords and secrets — never inline them on the command line
+- Confirm destructive actions (`--yes`, `delete --force`, `plugin deactivate --all`) with the user first
+- `--format=json` for machine output, `--fields=<cols>` to trim columns
 
-## Workflow for Common Tasks
-
-### Migrating a domain
+## Common Workflows
 
 ```bash
+# Domain migration
 wp db export pre-migration.sql
-wp search-replace 'https://old-domain.com' 'https://new-domain.com' --dry-run
-wp search-replace 'https://old-domain.com' 'https://new-domain.com' --precise --recurse-objects --all-tables
-wp cache flush
-wp rewrite flush
-```
+wp search-replace 'https://old.com' 'https://new.com' --dry-run
+wp search-replace 'https://old.com' 'https://new.com' --precise --recurse-objects --all-tables
+wp cache flush && wp rewrite flush
 
-### Updating everything
-
-```bash
-wp core update
-wp core update-db
+# Update everything
+wp core update && wp core update-db
 wp plugin update --all
 wp theme update --all
 wp cache flush
-```
 
-### Debugging a broken site
-
-```bash
-wp core is-installed
+# Bisect a broken site
 wp core verify-checksums
-wp plugin list --status=active
 wp plugin deactivate --all
-# Re-activate plugins one by one to identify the culprit
-wp plugin activate <plugin-name>
+# Re-activate one by one to find the culprit
+wp plugin activate <name>
 ```

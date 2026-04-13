@@ -23,9 +23,13 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 
 | Skill | Description |
 |-------|-------------|
+| [core-commit](./claude-code-skills/core-commit/SKILL.md) | Write WordPress core commit messages following official guidelines |
 | [ci-fixer](./claude-code-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
 | [commit](./claude-code-skills/commit/SKILL.md) | Create atomic commits with clear, descriptive messages following WordPress core style |
+| [web-performance-tuner](./claude-code-skills/web-performance-tuner/SKILL.md) | Diagnose and fix web performance issues with measurable validation |
+| [wp-admin-tester](./claude-code-skills/wp-admin-tester/SKILL.md) | Debug and test wp-admin flows locally: REST API, browser automation, PHP/JS log capture |
 | [wp-cli](./claude-code-skills/wp-cli/SKILL.md) | Manage WordPress installations using WP-CLI commands |
+| [worktrunk](./claude-code-skills/worktrunk/SKILL.md) | Manage git worktrees with Worktrunk (wt CLI): parallel agents, hooks, merge workflows |
 
 ## Installation
 
