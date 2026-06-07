@@ -37,6 +37,19 @@ gh pr checks NUMBER --repo OWNER/REPO --json name,state,bucket 2>/dev/null
 # Mergeability + review decision in one call
 gh pr view NUMBER --repo OWNER/REPO \
   --json mergeable,mergeStateStatus,reviewDecision,isDraft,comments,reviews
+
+# Unresolved review threads (gh pr view --json has no reviewThreads field,
+# so use a GraphQL query). Prints the count of unresolved threads.
+gh api graphql -f query='
+  query($owner:String!, $repo:String!, $number:Int!) {
+    repository(owner:$owner, name:$repo) {
+      pullRequest(number:$number) {
+        reviewThreads(first:100) { nodes { isResolved } }
+      }
+    }
+  }' -F owner=OWNER -F repo=REPO -F number=NUMBER \
+  --jq '[.data.repository.pullRequest.reviewThreads.nodes[]
+         | select(.isResolved == false)] | length'
 ```
 
 Interpret the fields:
@@ -60,8 +73,8 @@ Interpret the fields:
 - No checks -> None
 
 **Outstanding feedback:** treat as Yes when `reviewDecision == "CHANGES_REQUESTED"`,
-or when there are unresolved review threads / recent reviewer comments you have not
-replied to. Otherwise No.
+or when the unresolved-thread count from the GraphQL query above is greater than 0.
+Otherwise No.
 
 ## Step 3: Build the status table
 
