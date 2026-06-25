@@ -19,7 +19,7 @@ Review all open pull requests authored by the current user across every repo, pr
 ```bash
 gh search prs --author @me --state open \
   --json repository,number,title,url,updatedAt \
-  --sort updated --limit 50
+  --sort updated --limit 500
 ```
 
 This returns every open PR you authored, most recently updated first. If the user
