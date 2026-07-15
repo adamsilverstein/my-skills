@@ -88,7 +88,7 @@ Combine all usernames from both sources. Rules:
 ```
 Component: Brief summary.
 
-Longer description explaining what changed and why. Use backticks for `function_names` and `hook_names`.
+Description answering: why is this change necessary, how does it address the issue, and what side effects does it have. Use backticks for `function_names` and `hook_names`.
 
 Additional paragraphs as needed.
 
@@ -115,7 +115,11 @@ Fixes #NNNNN. See #NNNNN, #NNNNN.
 
 ### Description
 - Separated from summary by a blank line.
-- Explain what changed and why. Be direct and concise but thorough enough to stand alone.
+- The diff already shows WHAT changed. Do not restate it. Instead, the description must answer three questions (per https://thoughtbot.com/blog/5-useful-tips-for-a-better-commit-message):
+  1. **Why is this change necessary?** Lead with the problem: the user-facing symptom, the broken behavior, or the motivation. Include how long the bug existed or which version introduced it when known.
+  2. **How does it address the issue?** Explain the approach and the reasoning behind it, not a line-by-line narration of the diff.
+  3. **What side effects does this change have?** Note behavior changes, affected callers, edge cases, or explicitly state that behavior is unchanged elsewhere and why.
+- Be direct and concise but thorough enough to stand alone.
 - Use backticks around code references (`function_name`, `hook_name`, `$variable`).
 - Can be multiple paragraphs separated by blank lines.
 - Do NOT manually wrap lines.
@@ -152,7 +156,7 @@ Fixes #NNNNN. See #NNNNN, #NNNNN.
 
 Match this voice and level of detail (based on the committer's established style):
 
-- **Direct and concise.** Lead with what changed, then explain why. No filler.
+- **Direct and concise.** Lead with why the change is necessary (the problem), then how it addresses it, then side effects. No filler, and no restating the diff.
 - **Technical but accessible.** Reference specific functions, hooks, and parameters with backticks. Explain the user-facing impact when relevant.
 - **1-3 sentences for the description** is typical. Use more only when the change is architecturally significant or affects multiple areas.
 - **Link to related GitHub issues** when the change originated from or relates to Gutenberg issues.
