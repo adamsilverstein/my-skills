@@ -23,6 +23,7 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 
 | Skill | Description |
 |-------|-------------|
+| [adams-voice](./claude-code-skills/adams-voice/SKILL.md) | Write GitHub issues, PRs, comments, and Trac tickets in Adam's authentic voice |
 | [core-commit](./claude-code-skills/core-commit/SKILL.md) | Write WordPress core commit messages following official guidelines |
 | [ci-fixer](./claude-code-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
 | [pr-status-review](./claude-code-skills/pr-status-review/SKILL.md) | Review your open PRs in a status table (CI, mergeability, feedback) and suggest what to work on next |
