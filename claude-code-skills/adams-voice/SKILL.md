@@ -1,6 +1,6 @@
 ---
 name: adams-voice
-description: Write in Adam Silverstein's authentic voice. Use whenever drafting ANY text that will be posted under Adam's name - GitHub issues, PR descriptions, issue/PR comments, code review replies, Trac tickets and Trac comments. Also use when revising or editing such text.
+description: "Write in Adam Silverstein's authentic voice. Use whenever drafting ANY text that will be posted under Adam's name - GitHub issues, PR descriptions, issue/PR comments, code review replies, Trac tickets and Trac comments. Also use when revising or editing such text."
 ---
 
 # Writing in Adam's voice
