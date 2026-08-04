@@ -29,48 +29,13 @@ To fetch it:
 gh api repos/WordPress/wordpress-develop/issues/{PR_NUMBER}/comments --jq '.[] | select(.user.login == "github-actions[bot]") | .body'
 ```
 
+Confirm that each user on the list actually participated in the PR. If not, remove them.  Always use WordPress.org usernames (not GitHub handles). The props bot already converts these.
+
 ### Step 2: Trac Ticket Contributors
 
-Scrape the Trac ticket for ALL participants. Be generous: anyone who reported, commented, confirmed, tested, reviewed, or contributed patches deserves props.
+Scrape the Trac ticket for ALL participants. Be generous: anyone who reported, commented, confirmed, tested, reviewed, or contributed patches deserves props. Exception: they were only there to request a status update.
 
-To fetch Trac ticket participants:
-```
-curl -s "https://core.trac.wordpress.org/ticket/{TICKET_NUMBER}" | python3 -c "
-import sys, re, html as htmlmod
-page = sys.stdin.read()
-
-# Get reporter
-reporter = re.search(r'<td[^>]*headers=\"h_reporter\"[^>]*>\s*<a[^>]*>([^<]+)</a>', page)
-if reporter:
-    print(f'Reporter: {reporter.group(1).strip()}')
-
-# Get owner
-owner = re.search(r'<td[^>]*headers=\"h_owner\"[^>]*>\s*<a[^>]*>([^<]+)</a>', page)
-if owner:
-    print(f'Owner: {owner.group(1).strip()}')
-
-# Get CC list
-cc = re.search(r'<td[^>]*headers=\"h_cc\"[^>]*>(.*?)</td>', page, re.DOTALL)
-if cc:
-    cc_text = re.sub(r'<[^>]+>', '', cc.group(1)).strip()
-    if cc_text:
-        print(f'Cc: {cc_text}')
-
-# Get all comment authors
-authors = re.findall(r'class=\"trac-author-user\"[^>]*>([^<]+)<', page)
-# Also check for other author patterns
-authors += re.findall(r'class=\"author\"[^>]*>\s*<a[^>]*>([^<]+)</a>', page)
-unique = sorted(set(a.strip() for a in authors if a.strip()))
-if unique:
-    print(f'Comment authors: {\", \".join(unique)}')
-
-# Get attachment authors
-attach_authors = re.findall(r'class=\"trac-author\"[^>]*>([^<]+)<', page)
-unique_attach = sorted(set(a.strip() for a in attach_authors if a.strip()))
-if unique_attach:
-    print(f'Attachment/change authors: {\", \".join(unique_attach)}')
-"
-```
+To fetch Trac ticket participants, use your trac skills to review the related trac ticket.
 
 ### Step 3: Merge Props Lists
 
@@ -90,7 +55,7 @@ Component: Brief summary.
 
 Description answering: why is this change necessary, how does it address the issue, and what side effects does it have. Use backticks for `function_names` and `hook_names`.
 
-Additional paragraphs as needed.
+Additional paragraphs as needed (keep it succinct though, one paragraph should suffice).
 
 Follow-up to [NNNNN], [NNNNN].
 
@@ -119,9 +84,11 @@ Fixes #NNNNN. See #NNNNN, #NNNNN.
   1. **Why is this change necessary?** Lead with the problem: the user-facing symptom, the broken behavior, or the motivation. Include how long the bug existed or which version introduced it when known.
   2. **How does it address the issue?** Explain the approach and the reasoning behind it, not a line-by-line narration of the diff.
   3. **What side effects does this change have?** Note behavior changes, affected callers, edge cases, or explicitly state that behavior is unchanged elsewhere and why.
+
 - Be direct and concise but thorough enough to stand alone.
 - Use backticks around code references (`function_name`, `hook_name`, `$variable`).
-- Can be multiple paragraphs separated by blank lines.
+- Most changes should be small and descriptions a single paragraph.
+- Larger commit descriptions can be multiple paragraphs separated by blank lines. Aim for brevity, leave off extraneous details.
 - Do NOT manually wrap lines.
 - Each sentence/line should begin with a capital letter and end with a period.
 - When referencing GitHub issues, use full URLs.
