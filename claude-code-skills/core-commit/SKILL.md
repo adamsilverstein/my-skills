@@ -29,17 +29,18 @@ To fetch it:
 gh api repos/WordPress/wordpress-develop/issues/{PR_NUMBER}/comments --jq '.[] | select(.user.login == "github-actions[bot]") | .body'
 ```
 
-Confirm that each user on the list actually participated in the PR. If not, remove them.  Always use WordPress.org usernames (not GitHub handles). The props bot already converts these.
+Confirm that each user on the list actually participated in the PR. If not, remove them. Always use WordPress.org usernames (not GitHub handles). The props bot already converts these.
 
 ### Step 2: Trac Ticket Contributors
 
-Scrape the Trac ticket for ALL participants. Be generous: anyone who reported, commented, confirmed, tested, reviewed, or contributed patches deserves props. Exception: they were only there to request a status update.
+Scrape the Trac ticket for ALL participants. Be generous: anyone who reported, commented, confirmed, tested, reviewed, or contributed patches deserves props.
 
 To fetch Trac ticket participants, use your trac skills to review the related trac ticket.
 
 ### Step 3: Merge Props Lists
 
 Combine all usernames from both sources. Rules:
+- Drop anyone whose only contribution to the PR or ticket was requesting a status update.
 - Use **WordPress.org usernames** (not GitHub handles). The props bot already converts these.
 - For Trac users, the displayed name IS the w.org username.
 - If a user has a space in their display name, use the slug from their w.org profile URL.
