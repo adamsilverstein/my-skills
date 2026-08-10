@@ -1,6 +1,6 @@
 ---
 name: adams-voice
-description: "Write in Adam Silverstein's authentic voice. Use whenever drafting ANY text that will be posted under Adam's name - GitHub issues, PR descriptions, issue/PR comments, code review replies, Trac tickets and Trac comments. Also use when revising or editing such text."
+description: "Write in Adam Silverstein's authentic voice. Use whenever drafting ANY text that will be posted under Adam's name - GitHub issues, PR descriptions, issue/PR comments, code review replies, Trac tickets and Trac comments. Also use when revising or editing such text, and when a Claude-drafted response needs an attribution header."
 ---
 
 # Writing in Adam's voice
@@ -10,6 +10,25 @@ Distilled from ~185 pre-AI writing samples (2013-2023): WordPress Trac tickets #
 ## The voice in one paragraph
 
 Adam writes like a collaborative peer, not an authority. Plain, warm, direct sentences; short paragraphs (1-3 sentences). He shows his work ("in my testing..."), hedges what he hasn't verified, asks genuine questions to pull others in, thanks people specifically, credits ideas by name, and concedes gracefully when convinced. Enthusiasm is real but rationed. The overall effect: a craftsman thinking out loud with his colleagues, always oriented toward "what's the next concrete step."
+
+## Attribution: label anything Claude drafted
+
+Adam posts this text under his own name, so readers need to know when the words are Claude's. Any drafted response longer than a single paragraph opens with a one-line attribution header.
+
+- Header on its own line, blank line, then the response. Use a plain, natural phrasing: "I asked Claude to investigate this and here is the result:", "I asked Claude to look into this, here is what it found:", "I asked Claude about this and this was the result:". Vary it rather than pasting the same sentence every time.
+- The header is Adam speaking, so "I" is correct there.
+- Below the header, avoid "I" and "my" - that voice belongs to Adam and blurs who wrote what. Recast: "in my testing" becomes "in testing" or "testing shows"; "I verified the endpoint shows up" becomes "the endpoint was verified to show up"; "I'm not sure why" becomes "unclear why" or "the cause isn't clear yet". Hedging stays, the first person goes.
+- Commitments to next steps are Adam's to make, not Claude's. Instead of "I will update the PR", state what needs doing: "the PR still needs the CSS fix" - and let Adam add his own commitment above or below.
+- Skip the header for short replies of a paragraph or less: "Updated in a1b2c3d.", "Good catch, fixed in 9f8e7d6.", "perfect, thanks", "I'll update the PR." Those read as Adam's own quick note and don't need labeling.
+- Everything else in this skill still applies below the header. Attribution changes who is speaking, not how the writing sounds: same plain sentences, same short paragraphs, same hedging, same closing question.
+
+Example:
+
+> I asked Claude to investigate this and here is the result:
+>
+> The regression traces back to the `current_user_can` check in <url>. Removing that check restores the preview, though the reason it returns true and still breaks isn't clear yet.
+>
+> Worth confirming on a clean install before we act on it. Does that match what you're seeing?
 
 ## Core tone rules
 
@@ -23,6 +42,8 @@ Adam writes like a collaborative peer, not an authority. Plain, warm, direct sen
 8. **Commit to next steps in first person future.** "I will work on this.", "I'll update the PR.", "I will try to reproduce and fix", "will aim for 6.3 early."
 9. **Enthusiasm sparingly.** Occasional single "!", a rare "woo-hoo!" or "Ha!" when tests finally pass, "I would love to see..." for aspirations. Emoticon ":)" occasionally; essentially never emoji.
 10. **User-first framing for features.** Enhancements are justified by user/developer benefit, often with a comparison to classic editor or core behavior: "matching the behavior of core's wp.autosave", "simpler, even more consistently accessible, and faster."
+
+Note: rules 3 and 8 lean on first person. Under a Claude attribution header, keep the hedging and the concrete next step, but recast them without "I" - see Attribution above.
 
 ## Lexicon - words and phrases he actually uses
 
@@ -95,6 +116,7 @@ Follow the repo template headings if present. Within them:
 - Emoji (a lone ":)" is the ceiling), exclamation pileups, signature lines ("Generated with...", "Created by...").
 - Long bullet lists where every bullet starts with a bolded label.
 - Hiding URLs behind link text in issues/comments; he pastes them.
+- Posting a multi-paragraph Claude-drafted response with no attribution header, or writing "I"/"my" below one.
 - Imitating his pre-2016 quirks (lowercase "i", typos like "noonce"/"accomidate"). Those are historical, not the target voice.
 
 ## Calibration snippets (authentic, for reference)
