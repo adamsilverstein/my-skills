@@ -11,7 +11,7 @@ Pairs with [adams-voice](../adams-voice/SKILL.md), which governs the writing oth
 
 ## The two places an attribution line appears
 
-**1. Prose header** - above a Claude-drafted comment, issue, PR description, code review reply, or Trac comment. Its own line, blank line, then the response. Ends with a colon when the response follows directly.
+**1. Prose header** - above a Claude-drafted comment, issue, PR description, code review reply, or Trac comment. Italic, on its own line, blank line, then the response. Ends with a colon when the response follows directly.
 
 **2. AI Use footer** - the "## AI Use" section at the bottom of a PR or issue. Says what Claude wrote (description, code, or both) and keeps Adam's review commitment.
 
@@ -22,6 +22,7 @@ Vary everything except these:
 - **Name Claude.** Every line says "Claude" or "Claude Code". No coy "with a little help from a friend".
 - **Say what Claude did.** Wrote, investigated, drafted, dug into. A reader should know whether Claude produced the words, the code, or both.
 - **Keep the header to one line.** Roughly 12 words or fewer. It is a label, not an introduction.
+- **Italicize the header.** Wrap it in underscores - `_Claude went back over the geometry here:_` - so it reads as a label set apart from the response rather than the first sentence of it. On Trac, use Wiki formatting instead: `''Claude went back over the geometry here:''`. The phrase banks below are written plain for readability; add the italics when you post. The AI Use footer is not italicized, its `## AI Use` heading already sets it apart.
 - **Keep "I will review and test." in the AI Use footer of any PR that contains code.** That is a promise Adam is making, not a flourish. Never joke it away, never drop it.
 - **"I" belongs to Adam and only in the attribution line itself.** Below a header, drop "I" and "my" per the Attribution rules in adams-voice.
 
@@ -101,7 +102,7 @@ A reply of one paragraph or less needs no attribution: "Updated in a1b2c3d.", "G
 
 A routine investigation on a GitHub issue:
 
-> Claude chased this down, here is where it landed:
+> _Claude chased this down, here is where it landed:_
 >
 > The regression traces back to the `current_user_can` check in <url>. Removing that check restores the preview, though why it returns true and still breaks isn't clear yet.
 >
@@ -109,7 +110,7 @@ A routine investigation on a GitHub issue:
 
 A second opinion on a design question:
 
-> I asked Claude to sanity check this, and it says:
+> _I asked Claude to sanity check this, and it says:_
 >
 > Both approaches work, but the `<select>` fallback keeps keyboard behavior consistent with core and avoids the focus trap noted in #26476. The autocomplete is nicer above ~50 authors.
 >
@@ -117,7 +118,7 @@ A second opinion on a design question:
 
 A security report - plain, no play:
 
-> I asked Claude to look into this, here is what it found:
+> _I asked Claude to look into this, here is what it found:_
 >
 > The nonce check runs after the option is written, so the write happens regardless of the check result. Reordering the two fixes it.
 
@@ -137,3 +138,4 @@ A PR footer:
 - Claiming effort, duration, or certainty Claude did not actually have.
 - Multi-line or multi-sentence headers. One line, then the content.
 - A header on a one-line reply.
+- A header left unitalicized, where it reads as the response's opening sentence instead of a label. Also bolding it instead - bold is reserved for the one critical clause in the body.
