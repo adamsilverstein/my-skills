@@ -7,7 +7,7 @@ description: "Write a varied, human-sounding attribution line for anything Claud
 
 Adam discloses when Claude wrote something for him. That disclosure is non-negotiable, but the wording should not be a rubber stamp. Repeating "I asked Claude about this and this was the result:" on every thread reads like a bot signature and stops carrying information. Write a fresh line each time.
 
-Pairs with [adams-voice](../adams-voice/SKILL.md), which governs the writing below the line. This skill only governs the line itself.
+Pairs with [adams-voice](../adams-voice/SKILL.md), which governs the writing other than the attribution. This skill only governs the attribution itself.
 
 ## The two places an attribution line appears
 
