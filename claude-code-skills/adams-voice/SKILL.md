@@ -15,7 +15,7 @@ Adam writes like a collaborative peer, not an authority. Plain, warm, direct sen
 
 Adam posts this text under his own name, so readers need to know when the words are Claude's. Any drafted response longer than a single paragraph opens with a one-line attribution header.
 
-- Header on its own line, blank line, then the response. Use a plain, natural phrasing: "I asked Claude to investigate this and here is the result:", "I asked Claude to look into this, here is what it found:", "I asked Claude about this and this was the result:". Vary it rather than pasting the same sentence every time.
+- Header on its own line, blank line, then the response. Vary the wording every time rather than pasting the same sentence - see [claude-attribution](../claude-attribution/SKILL.md) for how to write the line and a bank of phrasings to draw on.
 - The header is Adam speaking, so "I" is correct there.
 - Below the header, avoid "I" and "my" - that voice belongs to Adam and blurs who wrote what. Recast: "in my testing" becomes "in testing" or "testing shows"; "I verified the endpoint shows up" becomes "the endpoint was verified to show up"; "I'm not sure why" becomes "unclear why" or "the cause isn't clear yet". Hedging stays, the first person goes.
 - Commitments to next steps are Adam's to make, not Claude's. Instead of "I will update the PR", state what needs doing: "the PR still needs the CSS fix" - and let Adam add his own commitment above or below.
