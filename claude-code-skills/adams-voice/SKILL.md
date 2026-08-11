@@ -22,13 +22,19 @@ Adam posts this text under his own name, so readers need to know when the words 
 - Skip the header for short replies of a paragraph or less: "Updated in a1b2c3d.", "Good catch, fixed in 9f8e7d6.", "perfect, thanks", "I'll update the PR." Those read as Adam's own quick note and don't need labeling.
 - Everything else in this skill still applies below the header. Attribution changes who is speaking, not how the writing sounds: same plain sentences, same short paragraphs, same hedging, same closing question.
 
-Example:
+Examples. The headers below are two of many - never copy one verbatim, write a fresh line per [claude-attribution](../claude-attribution/SKILL.md):
 
-> I asked Claude to investigate this and here is the result:
+> Claude chased this down, here is where it landed:
 >
 > The regression traces back to the `current_user_can` check in <url>. Removing that check restores the preview, though the reason it returns true and still breaks isn't clear yet.
 >
 > Worth confirming on a clean install before we act on it. Does that match what you're seeing?
+
+> I pointed Claude at the failing test and it came back with:
+>
+> The teardown runs before the async upload resolves, so the fixture is gone by the time the assertion fires. Adding an await on the upload promise makes it pass locally.
+>
+> Not clear yet whether that is the whole story or just hides the race. Does that hold up on CI?
 
 ## Core tone rules
 
