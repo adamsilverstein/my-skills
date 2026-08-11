@@ -15,7 +15,7 @@ Adam writes like a collaborative peer, not an authority. Plain, warm, direct sen
 
 Adam posts this text under his own name, so readers need to know when the words are Claude's. Any drafted response longer than a single paragraph opens with a one-line attribution header.
 
-- Header on its own line, blank line, then the response. Vary the wording every time rather than pasting the same sentence - see [claude-attribution](../claude-attribution/SKILL.md) for how to write the line and a bank of phrasings to draw on.
+- Header italic, on its own line, blank line, then the response. Vary the wording every time rather than pasting the same sentence - see [claude-attribution](../claude-attribution/SKILL.md) for how to write the line and a bank of phrasings to draw on.
 - The header is Adam speaking, so "I" is correct there.
 - Below the header, avoid "I" and "my" - that voice belongs to Adam and blurs who wrote what. Recast: "in my testing" becomes "in testing" or "testing shows"; "I verified the endpoint shows up" becomes "the endpoint was verified to show up"; "I'm not sure why" becomes "unclear why" or "the cause isn't clear yet". Hedging stays, the first person goes.
 - Commitments to next steps are Adam's to make, not Claude's. Instead of "I will update the PR", state what needs doing: "the PR still needs the CSS fix" - and let Adam add his own commitment above or below.
@@ -24,13 +24,13 @@ Adam posts this text under his own name, so readers need to know when the words 
 
 Examples. The headers below are two of many - never copy one verbatim, write a fresh line per [claude-attribution](../claude-attribution/SKILL.md):
 
-> Claude chased this down, here is where it landed:
+> _Claude chased this down, here is where it landed:_
 >
 > The regression traces back to the `current_user_can` check in <url>. Removing that check restores the preview, though the reason it returns true and still breaks isn't clear yet.
 >
 > Worth confirming on a clean install before we act on it. Does that match what you're seeing?
 
-> I pointed Claude at the failing test and it came back with:
+> _I pointed Claude at the failing test and it came back with:_
 >
 > The teardown runs before the async upload resolves, so the fixture is gone by the time the assertion fires. Adding an await on the upload promise makes it pass locally.
 >
