@@ -10,8 +10,10 @@ Manage WordPress installations using WP-CLI: core, plugins, themes, users, datab
 ## Prerequisites
 
 - `wp` installed and on PATH; run from the WordPress root or pass `--path=<path>`
-- `wp doctor` requires WP-CLI v2.12+ and the separate `wp-cli/doctor-command` package:
+- `wp doctor` needs the separate `wp-cli/doctor-command` package:
   `wp package install wp-cli/doctor-command:@stable`
+  `@stable` currently resolves to v3.0.0, which requires WP-CLI 3.0+. On WP-CLI 2.x, pin an
+  older release instead (`:^2.3` needs 2.12+, `:^2.1` works back to WP-CLI 2.1)
 - `wp maintenance-mode` is bundled with WP-CLI (no extra package needed)
 
 ## Core
@@ -48,9 +50,9 @@ wp theme update --all
 
 ```bash
 wp user list [--role=administrator]
-wp user create <username> <email> --role=<role> --user_pass=<password>
+wp user create <username> <email> --role=<role> --prompt=user_pass
 wp user update <id> --role=editor --display_name="Name"
-wp user update <id> --user_pass=<new-password>
+wp user update <id> --prompt=user_pass
 wp user delete <id> --reassign=<other-id>
 ```
 
@@ -59,13 +61,14 @@ wp user delete <id> --reassign=<other-id>
 ```bash
 wp db export backup.sql
 wp db import backup.sql
-wp db query "SELECT option_value FROM wp_options WHERE option_name='siteurl';"
+wp option get siteurl                    # prefix-agnostic; prefer over raw SQL
+wp db query "SELECT option_value FROM $(wp config get table_prefix)options WHERE option_name='siteurl';"
 wp db optimize
 wp db repair
 
-# Always --dry-run first
-wp search-replace 'old' 'new' --dry-run
-wp search-replace 'old' 'new' --precise --recurse-objects --all-tables
+# Always --dry-run first, with the exact flags the real run will use
+wp search-replace 'old' 'new' --precise --recurse-objects --all-tables-with-prefix --dry-run
+wp search-replace 'old' 'new' --precise --recurse-objects --all-tables-with-prefix
 ```
 
 ## Options, Cache, Rewrites
@@ -121,6 +124,10 @@ wp site list --field=url | xargs -I {} wp option get blogname --url={}
 ## Rules
 
 - Always `--dry-run` `search-replace` first, and `wp db export` before destructive changes
+- The dry run must carry the *same* flags as the real run — a preview with a different table
+  scope does not describe what the real run will modify
+- Prefer `--all-tables-with-prefix` over `--all-tables`: the latter rewrites every table in the
+  database, including tables owned by other apps sharing it. Use it only deliberately
 - Use `--prompt=<arg>` for passwords and secrets — never inline them on the command line
 - Confirm destructive actions (`--yes`, `delete --force`, `plugin deactivate --all`) with the user first
 - `--format=json` for machine output, `--fields=<cols>` to trim columns
@@ -130,8 +137,8 @@ wp site list --field=url | xargs -I {} wp option get blogname --url={}
 ```bash
 # Domain migration
 wp db export pre-migration.sql
-wp search-replace 'https://old.com' 'https://new.com' --dry-run
-wp search-replace 'https://old.com' 'https://new.com' --precise --recurse-objects --all-tables
+wp search-replace 'https://old.com' 'https://new.com' --precise --recurse-objects --all-tables-with-prefix --dry-run
+wp search-replace 'https://old.com' 'https://new.com' --precise --recurse-objects --all-tables-with-prefix
 wp cache flush && wp rewrite flush
 
 # Update everything
@@ -142,7 +149,9 @@ wp cache flush
 
 # Bisect a broken site
 wp core verify-checksums
+wp plugin list --status=active --field=name > active-plugins.txt   # capture first, so state is restorable
 wp plugin deactivate --all
-# Re-activate one by one to find the culprit
+# Re-activate one by one from active-plugins.txt to find the culprit
 wp plugin activate <name>
+# Restore the original set: xargs wp plugin activate < active-plugins.txt
 ```
