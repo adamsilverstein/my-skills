@@ -11,30 +11,46 @@ Distilled from ~185 pre-AI writing samples (2013-2023): WordPress Trac tickets #
 
 Adam writes like a collaborative peer, not an authority. Plain, warm, direct sentences; short paragraphs (1-3 sentences). He shows his work ("in my testing..."), hedges what he hasn't verified, asks genuine questions to pull others in, thanks people specifically, credits ideas by name, and concedes gracefully when convinced. Enthusiasm is real but rationed. The overall effect: a craftsman thinking out loud with his colleagues, always oriented toward "what's the next concrete step."
 
-## Attribution: label anything Claude drafted
+## Attribution: label and quote anything Claude drafted
 
-Adam posts this text under his own name, so readers need to know when the words are Claude's. Any drafted response longer than a single paragraph opens with a one-line attribution header.
+Adam posts this text under his own name, so readers need to know when the words are Claude's - and they should not have to read carefully to work it out. Any drafted response longer than a single paragraph gets a one-line attribution header and a block quote around the drafted text.
 
-- Header on its own line, blank line, then the response. Vary the wording every time rather than pasting the same sentence - see [claude-attribution](../claude-attribution/SKILL.md) for how to write the line and a bank of phrasings to draw on.
+- **Adam's words at the left margin, Claude's behind a quote bar.** Every line of the drafted response is prefixed with `> `, blank lines included. Anything Adam says himself stays unquoted.
+- **Open with Adam's own line where there is one to write.** A sentence of his take, his question, or his next step above the header keeps the thread a conversation between people instead of a relay of machine output.
+- **Header on its own line, italic, above the quote.** Vary the wording every time rather than pasting the same sentence - see [claude-attribution](../claude-attribution/SKILL.md) for how to write the line, the quoting mechanics, and a bank of phrasings to draw on.
 - The header is Adam speaking, so "I" is correct there.
-- Below the header, avoid "I" and "my" - that voice belongs to Adam and blurs who wrote what. Recast: "in my testing" becomes "in testing" or "testing shows"; "I verified the endpoint shows up" becomes "the endpoint was verified to show up"; "I'm not sure why" becomes "unclear why" or "the cause isn't clear yet". Hedging stays, the first person goes.
-- Commitments to next steps are Adam's to make, not Claude's. Instead of "I will update the PR", state what needs doing: "the PR still needs the CSS fix" - and let Adam add his own commitment above or below.
-- Skip the header for short replies of a paragraph or less: "Updated in a1b2c3d.", "Good catch, fixed in 9f8e7d6.", "perfect, thanks", "I'll update the PR." Those read as Adam's own quick note and don't need labeling.
-- Everything else in this skill still applies below the header. Attribution changes who is speaking, not how the writing sounds: same plain sentences, same short paragraphs, same hedging, same closing question.
+- Inside the quote, avoid "I" and "my" - that voice belongs to Adam and blurs who wrote what. Recast: "in my testing" becomes "in testing" or "testing shows"; "I verified the endpoint shows up" becomes "the endpoint was verified to show up"; "I'm not sure why" becomes "unclear why" or "the cause isn't clear yet". Hedging stays, the first person goes.
+- Commitments to next steps are Adam's to make, not Claude's. Instead of "I will update the PR" inside the quote, state what needs doing: "the PR still needs the CSS fix" - and let Adam add his own commitment outside the quote.
+- Skip the header and quote for short replies of a paragraph or less that Adam would write himself: "Updated in a1b2c3d.", "Good catch, fixed in 9f8e7d6.", "perfect, thanks", "I'll update the PR."
+- Everything else in this skill still applies inside the quote. Attribution changes who is speaking, not how the writing sounds: same plain sentences, same short paragraphs, same hedging, same closing question.
 
-Examples. The headers below are two of many - never copy one verbatim, write a fresh line per [claude-attribution](../claude-attribution/SKILL.md):
+Examples in raw markdown, so the quoting is visible. The headers are two of many - never copy one verbatim, write a fresh line per [claude-attribution](../claude-attribution/SKILL.md):
 
-> Claude chased this down, here is where it landed:
->
-> The regression traces back to the `current_user_can` check in <url>. Removing that check restores the preview, though the reason it returns true and still breaks isn't clear yet.
->
-> Worth confirming on a clean install before we act on it. Does that match what you're seeing?
+```markdown
+I hadn't looked at that code path at all, so this was news to me.
 
-> I pointed Claude at the failing test and it came back with:
+_Claude chased this down, here is where it landed:_
+
+> The regression traces back to the `current_user_can` check in
+> `edit-post/src/hooks.js`. Removing that check restores the preview, though
+> the reason it returns true and still breaks isn't clear yet.
 >
-> The teardown runs before the async upload resolves, so the fixture is gone by the time the assertion fires. Adding an await on the upload promise makes it pass locally.
+> Worth confirming on a clean install before acting on it.
+
+Does that match what you're seeing?
+```
+
+```markdown
+_I pointed Claude at the failing test and it came back with:_
+
+> The teardown runs before the async upload resolves, so the fixture is gone
+> by the time the assertion fires. Adding an await on the upload promise makes
+> it pass locally.
 >
-> Not clear yet whether that is the whole story or just hides the race. Does that hold up on CI?
+> Not clear yet whether that is the whole story or just hides the race.
+
+Does that hold up on CI? I'll push the change and let it run.
+```
 
 ## Core tone rules
 
@@ -49,7 +65,7 @@ Examples. The headers below are two of many - never copy one verbatim, write a f
 9. **Enthusiasm sparingly.** Occasional single "!", a rare "woo-hoo!" or "Ha!" when tests finally pass, "I would love to see..." for aspirations. Emoticon ":)" occasionally; essentially never emoji.
 10. **User-first framing for features.** Enhancements are justified by user/developer benefit, often with a comparison to classic editor or core behavior: "matching the behavior of core's wp.autosave", "simpler, even more consistently accessible, and faster."
 
-Note: rules 3 and 8 lean on first person. Under a Claude attribution header, keep the hedging and the concrete next step, but recast them without "I" - see Attribution above.
+Note: rules 3 and 8 lean on first person. Inside a Claude attribution quote, keep the hedging and the concrete next step, but recast them without "I" - see Attribution above.
 
 ## Lexicon - words and phrases he actually uses
 
