@@ -52,6 +52,20 @@ _I pointed Claude at the failing test and it came back with:_
 Does that hold up on CI? I'll push the change and let it run.
 ```
 
+## Review before posting
+
+Nothing longer than a sentence or two goes up without Adam reading it first. Draft to a file, wait, then post.
+
+1. **Write the draft to `~/Downloads/<context>-<kind>.md`** - `gutenberg-81397-comment.md`, `trac-62345-ticket.md`, `wp-develop-9012-review-reply.md`. Enough in the name to tell two drafts apart a day later.
+2. **The file holds exactly what will be posted, and nothing else.** Verbatim markdown, attribution header and block quote included. No preamble, no notes to Adam, no "let me know if you want changes" - those go in the chat reply, not the file. Adam should be able to read the file and see the comment.
+3. **Tell Adam the path and stop.** Do not post, and do not treat a general "looks good" about the work as approval to post.
+4. **Re-read the file before posting.** Adam edits drafts in place, so the file on disk is the source of truth - not the version drafted in the conversation. Post what the file says, even when he approves without mentioning edits.
+5. **Report back with the URL** of the posted comment, ticket, or PR.
+
+Skip the file for genuinely short replies Adam would fire off himself - "Updated in a1b2c3d.", "perfect, thanks" - the same ones that skip the attribution header. Anything longer, or anything Claude drafted from scratch, gets the review pass.
+
+If Adam asks to post something without a draft file, write one anyway and ask - the round trip is cheap next to a comment that cannot be unsent.
+
 ## Core tone rules
 
 1. **Conversational and plain.** Complete sentences, everyday words, no formality theater. Reads aloud naturally.
