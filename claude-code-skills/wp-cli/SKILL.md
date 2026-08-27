@@ -12,8 +12,8 @@ Manage WordPress installations using WP-CLI: core, plugins, themes, users, datab
 - `wp` installed and on PATH; run from the WordPress root or pass `--path=<path>`
 - `wp doctor` needs the separate `wp-cli/doctor-command` package:
   `wp package install wp-cli/doctor-command:@stable`
-  `@stable` currently resolves to v3.0.0, which requires WP-CLI 3.0+. On WP-CLI 2.x, pin an
-  older release instead (`:^2.3` needs 2.12+, `:^2.1` works back to WP-CLI 2.1)
+  Composer resolves `@stable` against the installed WP-CLI. If it reports a version
+  conflict, check `wp --version` and pin an exact release that supports it instead
 - `wp maintenance-mode` is bundled with WP-CLI (no extra package needed)
 
 ## Core
@@ -23,13 +23,19 @@ wp --version
 wp core version
 wp core is-installed
 wp core check-update
-wp core update && wp core update-db
+wp core update && wp core update-db      # add --network to update-db on multisite
 wp core verify-checksums
 
-# Install fresh (prompts avoid leaking secrets to shell history)
+# Install fresh. --prompt keeps secrets out of shell history, but it reads from stdin
+# and blocks forever without a terminal
 wp core download
 wp config create --dbname=wordpress --dbuser=root --dbhost=localhost --prompt=dbpass
 wp core install --url=example.com --title="Site" --admin_user=admin --admin_email=admin@example.com --prompt=admin_password
+
+# Non-interactive equivalent (scripts, agents, CI): read the secret from the
+# environment so the value itself never reaches the command line or history
+wp config create --dbname=wordpress --dbuser=root --dbhost=localhost --dbpass="$WP_DB_PASS"
+wp core install --url=example.com --title="Site" --admin_user=admin --admin_email=admin@example.com --admin_password="$WP_ADMIN_PASS"
 ```
 
 ## Plugins & Themes
@@ -37,7 +43,8 @@ wp core install --url=example.com --title="Site" --admin_user=admin --admin_emai
 ```bash
 wp plugin list [--status=active] [--update=available]
 wp plugin install <slug> --activate
-wp plugin activate|deactivate <name>
+wp plugin activate <name>
+wp plugin deactivate <name>
 wp plugin update --all
 wp plugin verify-checksums --all
 
@@ -74,10 +81,14 @@ wp search-replace 'old' 'new' --precise --recurse-objects --all-tables-with-pref
 ## Options, Cache, Rewrites
 
 ```bash
-wp option get|update|delete <name> [value]
+wp option get <name>
+wp option update <name> <value>
+wp option delete <name>
 wp option list --search="*cache*"
 wp cache flush
-wp transient delete --all
+wp transient delete --all        # database transients only; with an external object
+                                 # cache you need `wp cache flush` too, and --network
+                                 # for network transients on multisite
 wp rewrite flush
 wp rewrite structure '/%postname%/'
 ```
@@ -99,18 +110,21 @@ wp post create --post_title='Title' --post_content='Body' --post_status=publish
 wp post delete <id> --force
 wp post generate --count=10
 
-wp media regenerate --yes
+wp media regenerate            # add --yes only after confirming; it rewrites every thumbnail
 wp media import <url-or-path>
 ```
 
 ## Maintenance & Troubleshooting
 
 ```bash
-wp maintenance-mode activate|deactivate|status
+wp maintenance-mode activate
+wp maintenance-mode deactivate
+wp maintenance-mode status
 wp doctor check --all            # requires wp-cli/doctor-command package
 wp shell
 wp eval 'echo PHP_VERSION;'
-wp config get|list
+wp config get <name>
+wp config list
 ```
 
 ## Multisite
@@ -119,6 +133,11 @@ wp config get|list
 wp site list
 wp site create --slug=<slug> --title="Title"
 wp site list --field=url | xargs -I {} wp option get blogname --url={}
+
+# Network-wide operations need --network; without it they only touch the main site
+wp core update-db --network
+wp transient delete --all --network
+wp plugin list --status=active,active-network
 ```
 
 ## Rules
@@ -128,7 +147,9 @@ wp site list --field=url | xargs -I {} wp option get blogname --url={}
   scope does not describe what the real run will modify
 - Prefer `--all-tables-with-prefix` over `--all-tables`: the latter rewrites every table in the
   database, including tables owned by other apps sharing it. Use it only deliberately
-- Use `--prompt=<arg>` for passwords and secrets — never inline them on the command line
+- Keep passwords and secrets off the command line: `--prompt=<arg>` when a terminal is
+  attached, or an environment variable (`--dbpass="$WP_DB_PASS"`) when running
+  non-interactively - `--prompt` blocks on stdin and will hang a script or agent
 - Confirm destructive actions (`--yes`, `delete --force`, `plugin deactivate --all`) with the user first
 - `--format=json` for machine output, `--fields=<cols>` to trim columns
 
@@ -139,10 +160,14 @@ wp site list --field=url | xargs -I {} wp option get blogname --url={}
 wp db export pre-migration.sql
 wp search-replace 'https://old.com' 'https://new.com' --precise --recurse-objects --all-tables-with-prefix --dry-run
 wp search-replace 'https://old.com' 'https://new.com' --precise --recurse-objects --all-tables-with-prefix
+# search-replace only rewrites the database. WP_HOME/WP_SITEURL in wp-config.php override
+# the rewritten options, so the old domain keeps serving - check `wp config list` first
+wp config set WP_HOME 'https://new.com'
+wp config set WP_SITEURL 'https://new.com'
 wp cache flush && wp rewrite flush
 
 # Update everything
-wp core update && wp core update-db
+wp core update && wp core update-db      # --network on multisite, or subsites keep the old schema
 wp plugin update --all
 wp theme update --all
 wp cache flush
