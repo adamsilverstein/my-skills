@@ -26,9 +26,12 @@ mtime() {
 	stat -f %m "$1" 2>/dev/null || echo missing
 }
 
-# Alert: macOS notification with a sound, plus a terminal bell.
-osascript -e "display notification \"$name - edit it to change it, delete it to veto, or leave it and it posts in $minutes min\" with title \"Claude: draft ready for review\" sound name \"Glass\"" >/dev/null 2>&1 || true
-printf '\a'
+# Alert: the terminal bell only. Claude Code captures this script's stdout, so
+# ring the bell on the controlling terminal when there is one. The dependable
+# bell is Claude Code's own: with preferredNotifChannel set to terminal_bell in
+# ~/.claude/settings.json it rings when the turn ends and waits for input.
+printf '\a' > /dev/tty 2>/dev/null || true
+echo "Waiting up to $minutes min for edits to $name"
 
 start=$(mtime "$draft")
 last=$start

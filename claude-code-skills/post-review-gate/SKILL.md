@@ -19,9 +19,9 @@ Scripts live in this skill's `scripts/` directory (`~/.claude/skills/post-review
    ```
    bash ~/.claude/skills/post-review-gate/scripts/wait-for-review.sh ~/Downloads/gutenberg-81397-comment.md
    ```
-   Run it with `run_in_background: true`. It fires a macOS notification with a sound and a terminal bell, then watches the file for five minutes. Where the PushNotification tool is available, also send one naming the file, so the alert reaches Adam's phone when Remote Control is connected. If it is not available, the script's notification is enough.
+   Run it with `run_in_background: true`. It watches the file for five minutes. The alert is the terminal bell and nothing more: Claude Code rings it when the turn ends (`preferredNotifChannel` is `terminal_bell` in `~/.claude/settings.json`), and iTerm shows it. No macOS notifications, no sounds, no PushNotification, no phone push; Adam finds those obtrusive.
 
-   Then tell Adam in chat: the path, that he can edit it in place, delete it to veto, or ignore it and it posts in five minutes. Never block on the script. If the task has other steps, continue them; if not, end the turn. Either way the script's result arrives as a notification and the workflow resumes from step 3.
+   Then tell Adam in chat: the path, that he can edit it in place, delete it to veto, or ignore it and it posts in five minutes. Never block on the script. Finish any other step that is ready, then end the turn so the bell rings. The script's result arrives as a notification and the workflow resumes from step 3.
 
 3. **Act on the first signal.**
 
