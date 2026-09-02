@@ -52,6 +52,15 @@ _I pointed Claude at the failing test and it came back with:_
 Does that hold up on CI? I'll push the change and let it run.
 ```
 
+## Review before posting
+
+Nothing longer than a sentence or two goes up without giving Adam a chance to read it first, and nothing waits on him forever. The handoff is governed by the post-review-gate skill: write the exact post to `~/Downloads/<context>-<kind>.md`, alert Adam, wait up to five minutes for edits, post whatever the file says, and record the URL in `~/.claude/posts-log.md`.
+
+Two rules from that skill matter while drafting:
+
+- **The file holds exactly what will be posted, and nothing else.** Verbatim markdown, attribution header and block quote included. No preamble, no notes to Adam - those go in the chat reply, not the file.
+- **Re-read the file before posting.** Adam edits drafts in place, so the file on disk is the source of truth, not the version drafted in the conversation.
+
 ## Core tone rules
 
 1. **Conversational and plain.** Complete sentences, everyday words, no formality theater. Reads aloud naturally.
