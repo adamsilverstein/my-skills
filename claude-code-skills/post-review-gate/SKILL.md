@@ -19,9 +19,9 @@ Scripts live in this skill's `scripts/` directory (`~/.claude/skills/post-review
    ```
    bash ~/.claude/skills/post-review-gate/scripts/wait-for-review.sh ~/Downloads/gutenberg-81397-comment.md
    ```
-   Run it with `run_in_background: true`. It fires a macOS notification with a sound and a terminal bell, then watches the file for five minutes. Also send a PushNotification naming the file, so the alert reaches Adam's phone when Remote Control is connected.
+   Run it with `run_in_background: true`. It fires a macOS notification with a sound and a terminal bell, then watches the file for five minutes. Where the PushNotification tool is available, also send one naming the file, so the alert reaches Adam's phone when Remote Control is connected. If it is not available, the script's notification is enough.
 
-   Then tell Adam in chat: the path, that he can edit it in place, delete it to veto, or ignore it and it posts in five minutes. End the turn. If there is other work in the task, keep going with it; the wait is not a reason to sit idle.
+   Then tell Adam in chat: the path, that he can edit it in place, delete it to veto, or ignore it and it posts in five minutes. Never block on the script. If the task has other steps, continue them; if not, end the turn. Either way the script's result arrives as a notification and the workflow resumes from step 3.
 
 3. **Act on the first signal.**
 
@@ -30,7 +30,7 @@ Scripts live in this skill's `scripts/` directory (`~/.claude/skills/post-review
    | Script prints `TIMEOUT` | Post as drafted. | `unreviewed` |
    | Script prints `EDITED` | Post the file exactly as it is now on disk. | `edited` |
    | Script prints `DELETED` | Do not post. Say so in chat and move on. | - |
-   | Adam says "post it" or "go" in chat | Post now. Stop the waiter with TaskStop. | `approved` |
+   | Adam tells you to post it in chat ("post it", "go ahead", "looks good, ship it") | Post now. Stop the waiter with TaskStop. | `approved` |
    | Adam asks for changes in chat | Revise the file, run the waiter again. Fresh five minutes. | - |
 
 4. **Post from the file.** Re-read it from disk immediately before posting. The file is the source of truth, not the version drafted in the conversation - Adam edits in place and may not mention it.
@@ -41,7 +41,7 @@ Scripts live in this skill's `scripts/` directory (`~/.claude/skills/post-review
    ```
    Kinds: `comment`, `review-reply`, `issue`, `pr`, `trac-ticket`, `trac-comment`. The log is `~/.claude/posts-log.md`. Give Adam the URL in chat, and say whether it went out reviewed or not.
 
-**Short replies skip the wait, not the record.** A one-liner Adam would fire off himself ("Updated in a1b2c3d.", "Thanks, merging.") posts directly and is logged with `review: short`. Anything longer, or anything Claude drafted from scratch, goes through the gate.
+**Short replies skip the file and the wait, not the record.** A one-liner Adam would fire off himself ("Updated in a1b2c3d.", "Thanks, merging.") posts directly with no draft file and is logged with `review: short` and no draft path. Anything longer, or anything Claude drafted from scratch, goes through the gate.
 
 ## Guardrails
 
@@ -49,7 +49,7 @@ Scripts live in this skill's `scripts/` directory (`~/.claude/skills/post-review
 - **The waiter fired but the post already went out** (Adam approved in chat first): check the log for the draft path. If it is there, do nothing.
 - **No file, no post.** When Adam says "just post it" before a draft exists, still write the file, post from it, and log it as `approved`. Cheap next to a comment that cannot be unsent.
 - **Log before reporting.** If the log line fails, fix it before handing over the URL. A post that is not in the log did not happen as far as "what have you posted for me" is concerned.
-- **Do not treat a general "looks good" about the work as approval to post.** Only a reply about the draft itself counts. Everything else is the timer's call.
+- **Approval is a reply about the post, not about the work.** "Looks good, go ahead" after you named the draft is approval. "Looks good" about the code, the diff, or the task, with no reference to posting, is not. When in doubt, the timer decides.
 
 ## "What have you posted for me today?"
 
