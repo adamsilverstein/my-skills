@@ -28,7 +28,7 @@ Scripts live in this skill's `scripts/` directory (`~/.claude/skills/post-review
    | Signal | Do this | `review` |
    |---|---|---|
    | Script prints `TIMEOUT` | Post as drafted. | `unreviewed` |
-   | Script prints `EDITED` | Post the file exactly as it is now on disk. | `edited` |
+   | Script prints `EDITED` | Post the file exactly as it is now on disk. (Also printed when an edit is still in progress two minutes past the deadline.) | `edited` |
    | Script prints `DELETED` | Do not post. Say so in chat and move on. | - |
    | Adam tells you to post it in chat ("post it", "go ahead", "looks good, ship it") | Post now. Stop the waiter with TaskStop. | `approved` |
    | Adam asks for changes in chat | Revise the file, run the waiter again. Fresh five minutes. | - |
@@ -41,13 +41,13 @@ Scripts live in this skill's `scripts/` directory (`~/.claude/skills/post-review
    ```
    Kinds: `comment`, `review-reply`, `issue`, `pr`, `trac-ticket`, `trac-comment`. The log is `~/.claude/posts-log.md`. Give Adam the URL in chat, and say whether it went out reviewed or not.
 
-**Short replies skip the file and the wait, not the record.** A one-liner Adam would fire off himself ("Updated in a1b2c3d.", "Thanks, merging.") posts directly with no draft file and is logged with `review: short` and no draft path. Anything longer, or anything Claude drafted from scratch, goes through the gate.
+**Short replies skip the file and the wait, not the record.** A short reply is one sentence that states something Adam already knows or has already decided: a commit hash, a thanks, a merge, a "done" ("Updated in a1b2c3d.", "Thanks, merging."). It posts directly with no draft file and is logged with `review: short` and no draft path. A reply that carries an opinion, a claim about the code, or a question goes through the gate however short it is.
 
 ## Guardrails
 
 - **Five minutes, then post.** No manual sleeps, no re-running the waiter to "give Adam more time", no ending the turn with the draft unposted and no waiter running. The whole point is that Adam being busy does not stall the task.
-- **The waiter fired but the post already went out** (Adam approved in chat first): check the log for the draft path. If it is there, do nothing.
-- **No file, no post.** When Adam says "just post it" before a draft exists, still write the file, post from it, and log it as `approved`. Cheap next to a comment that cannot be unsent.
+- **The waiter fired but the post already went out** (Adam approved in chat first): if you already have the URL for this post, do nothing. Do not use the draft path in the log as the test; draft filenames are reused, so an older entry can match.
+- **No file, no gated post.** When Adam says "just post it" about something longer than a short reply before a draft exists, still write the file, post from it, and log it as `approved`. Cheap next to a comment that cannot be unsent.
 - **Log before reporting.** If the log line fails, fix it before handing over the URL. A post that is not in the log did not happen as far as "what have you posted for me" is concerned.
 - **Approval is a reply about the post, not about the work.** "Looks good, go ahead" after you named the draft is approval. "Looks good" about the code, the diff, or the task, with no reference to posting, is not. When in doubt, the timer decides.
 

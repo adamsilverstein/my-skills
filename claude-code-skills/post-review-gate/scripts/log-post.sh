@@ -33,17 +33,30 @@ esac
 today=$(date +%Y-%m-%d)
 now=$(date "+%H:%M %Z")
 
+line="- $now | $kind | $target | $url | review: $review"
+if [ -n "$draft" ]; then
+	line="$line | draft: ${draft/#$HOME/~}"
+fi
+
+# Serialize concurrent sessions with a mkdir lock (atomic on macOS and Linux, no flock needed).
+lock="$LOG.lock"
+waited=0
+until mkdir "$lock" 2>/dev/null; do
+	waited=$(( waited + 1 ))
+	if [ "$waited" -ge 50 ]; then
+		echo "ERROR: could not acquire $lock after 10s; remove it if no other session is logging" >&2
+		exit 1
+	fi
+	sleep 0.2
+done
+trap 'rmdir "$lock" 2>/dev/null' EXIT
+
 if [ ! -f "$LOG" ]; then
 	printf "# Posts made on Adam's behalf\n\nOne line per post, grouped by day. Written by the post-review-gate skill.\n" > "$LOG"
 fi
 
 if ! grep -q "^## $today\$" "$LOG"; then
 	printf '\n## %s\n\n' "$today" >> "$LOG"
-fi
-
-line="- $now | $kind | $target | $url | review: $review"
-if [ -n "$draft" ]; then
-	line="$line | draft: ${draft/#$HOME/~}"
 fi
 
 echo "$line" >> "$LOG"
