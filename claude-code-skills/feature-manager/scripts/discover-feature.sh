@@ -61,7 +61,9 @@ fetch_pr() {
 export -f fetch_pr
 export repo tmp
 touch "$tmp/not_prs"
-xargs -P 8 -I{} bash -c 'fetch_pr {}' < "$tmp/refs" > "$tmp/prs.jsonl"
+# Numbers go in as positional arguments, never spliced into the -c string.
+xargs -P 8 -I{} bash -c 'set -euo pipefail; fetch_pr "$1"' _ '{}' < "$tmp/refs" > "$tmp/prs.jsonl" \
+	|| { echo "ERROR: looking up referenced PRs failed" >&2; exit 1; }
 
 # 3. Pull the user's open PRs once and add any whose base is a branch already in the set.
 #    Repeat until nothing new appears (a layer on a layer on a layer).

@@ -85,7 +85,9 @@ one_target() {
 export -f one_target
 export repo owner name since exclude tmp
 
-printf '%s\n' "${targets[@]}" | xargs -P 6 -I{} bash -c 'one_target {}'
+# Targets go in as positional arguments, never spliced into the -c string.
+printf '%s\n' "${targets[@]}" | xargs -P 6 -I{} bash -c 'set -euo pipefail; one_target "$1"' _ '{}' \
+	|| { echo "ERROR: fetching feedback failed for at least one target" >&2; exit 1; }
 
 # Bots do not carry the [bot] suffix everywhere (GraphQL drops it), so name the usual ones.
 cat "$tmp"/*.jsonl 2>/dev/null | jq -s -c '

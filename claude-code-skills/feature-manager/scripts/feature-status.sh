@@ -123,7 +123,8 @@ i=0
 for n in "${prs[@]}"; do
 	printf '%s %04d\n' "$n" "$i"
 	i=$((i + 1))
-done | xargs -P 6 -L 1 bash -c 'one_pr "$0" "$1"'
+done | xargs -P 6 -L 1 bash -c 'set -euo pipefail; one_pr "$1" "$2"' _ \
+	|| { echo "ERROR: status lookup failed for at least one PR" >&2; exit 1; }
 
 now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 result=$(cat "$tmp"/*.json | jq -s --arg now "$now" '{prs: ., changes: null, checked_at: $now}')
