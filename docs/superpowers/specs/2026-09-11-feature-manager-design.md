@@ -82,4 +82,5 @@ pr-status-review's job.
 
 Merge progression (retarget and renumber after a layer merges), Trac-backed features for
 wordpress-develop, register from a branch prefix, auto-fix trivial feedback, a dashboard
-artifact, reviewer nudges, dev note drafts.
+artifact, reviewer nudges, dev note drafts. Paginate review threads past 100 per PR in
+feature-status and feature-feedback (raised in review of PR #31).
