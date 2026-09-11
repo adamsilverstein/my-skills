@@ -65,9 +65,17 @@ one_pr() {
 	base=$(echo "$view" | jq -r .baseRefName)
 	head=$(echo "$view" | jq -r .headRefName)
 
-	# gh pr checks exits non-zero when anything fails; the JSON is still complete.
-	checks=$(gh pr checks "$n" --repo "$repo" --json name,bucket 2>/dev/null || true)
-	[ -z "$checks" ] && checks='[]'
+	# gh pr checks exits non-zero when a check fails or is pending, with complete JSON on
+	# stdout, and also when no checks exist at all. Anything else is a real failure.
+	checks=$(gh pr checks "$n" --repo "$repo" --json name,bucket 2>"$tmp/$idx.checks.err" || true)
+	if ! echo "$checks" | jq -e 'type == "array"' >/dev/null 2>&1; then
+		if grep -q "no checks reported" "$tmp/$idx.checks.err"; then
+			checks='[]'
+		else
+			echo "ERROR: gh pr checks $n failed: $(cat "$tmp/$idx.checks.err")" >&2
+			return 1
+		fi
+	fi
 	ci=$(echo "$checks" | jq -r '
 		if length == 0 then "none"
 		elif any(.[]; .bucket == "fail") then "failing"
