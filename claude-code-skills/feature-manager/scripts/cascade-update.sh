@@ -102,13 +102,17 @@ for branch in "${branches[@]}"; do
 		continue
 	fi
 
-	if git merge --no-edit -q "origin/$parent" >/dev/null 2>&1; then
+	if merge_out=$(git merge --no-edit -q "origin/$parent" 2>&1); then
 		if git push -q origin "$branch"; then
 			echo "MERGED      $branch <- $parent (pushed)"
 		else
 			echo "ERROR: merged $branch but push failed; push it by hand and re-run from the next branch" >&2
 			exit 2
 		fi
+	elif ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+		# The merge failed without starting (unrelated histories, a bad ref); nothing to resolve.
+		echo "ERROR: git merge origin/$parent into $branch failed: $merge_out" >&2
+		exit 2
 	else
 		echo "CONFLICT    $branch <- $parent"
 		git diff --name-only --diff-filter=U | sed 's/^/            /'
