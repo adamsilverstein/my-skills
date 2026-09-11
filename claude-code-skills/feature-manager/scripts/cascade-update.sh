@@ -62,6 +62,11 @@ fi
 
 git fetch origin --quiet || { echo "ERROR: git fetch failed" >&2; exit 2; }
 
+if ! git rev-parse -q --verify "origin/$base^{commit}" >/dev/null; then
+	echo "ERROR: origin/$base does not exist" >&2
+	exit 2
+fi
+
 parent=$base
 for branch in "${branches[@]}"; do
 	if ! git rev-parse -q --verify "origin/$branch" >/dev/null; then
