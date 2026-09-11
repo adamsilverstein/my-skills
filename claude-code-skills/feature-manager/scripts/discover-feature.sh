@@ -37,7 +37,7 @@ trap 'rm -rf "$tmp"' EXIT
 # 1. Numbers referenced from the issue bodies.
 for issue in "${issues[@]}"; do
 	gh issue view "$issue" --repo "$repo" --json body --jq .body \
-		| grep -oE "(https://github\.com/${repo}/(pull|issues)/[0-9]+|(^|[^A-Za-z0-9/])#[0-9]{3,7})" \
+		| grep -oE "(https://github\.com/${repo}/(pull|issues)/[0-9]+|(^|[^A-Za-z0-9/])#[0-9]+)" \
 		| grep -oE '[0-9]+$' || true
 done | sort -un > "$tmp/refs"
 
