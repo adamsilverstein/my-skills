@@ -102,7 +102,9 @@ one_pr() {
 	# gh api prints the error body on stdout, so validate the shape rather than trusting
 	# the exit code: a bare `|| echo FALLBACK` concatenates the two into invalid JSON.
 	compare=$(gh api "repos/$repo/compare/$base...$head_ref" --jq '{ahead_by, behind_by}' 2>/dev/null || true)
-	if ! echo "$compare" | jq -e 'type == "object" and (.behind_by | type) == "number"' >/dev/null 2>&1; then
+	if ! echo "$compare" | jq -e '
+		type == "object" and (.ahead_by | type) == "number" and (.behind_by | type) == "number"
+		' >/dev/null 2>&1; then
 		echo "WARNING: compare $base...$head_ref failed for #$n; ahead_by/behind_by unknown" >&2
 		compare='{"ahead_by":null,"behind_by":null}'
 	fi
