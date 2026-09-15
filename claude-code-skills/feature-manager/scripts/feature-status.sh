@@ -54,8 +54,8 @@ trap 'rm -rf "$tmp"' EXIT
 
 one_pr() {
 	local n=$1 idx=$2
-	local view checks threads compare base head ci failing
-	local fields=number,title,url,state,isDraft,author,headRefName,baseRefName,mergeable,mergeStateStatus,reviewDecision
+	local view checks threads compare base head head_owner head_ref ci failing
+	local fields=number,title,url,state,isDraft,author,headRefName,baseRefName,headRepositoryOwner,mergeable,mergeStateStatus,reviewDecision
 	view=$(gh pr view "$n" --repo "$repo" --json "$fields")
 	# GitHub computes mergeability lazily; the first read after a push often says UNKNOWN.
 	if [ "$(echo "$view" | jq -r .mergeable)" = "UNKNOWN" ]; then
@@ -64,6 +64,10 @@ one_pr() {
 	fi
 	base=$(echo "$view" | jq -r .baseRefName)
 	head=$(echo "$view" | jq -r .headRefName)
+	# A PR from a fork has no head branch in the upstream repo, so compare needs the
+	# owner-qualified ref. The qualified form works for same-repo PRs too.
+	head_owner=$(echo "$view" | jq -r '.headRepositoryOwner.login // ""')
+	if [ -n "$head_owner" ]; then head_ref="$head_owner:$head"; else head_ref=$head; fi
 
 	# gh pr checks exits non-zero when a check fails or is pending, with complete JSON on
 	# stdout, and also when no checks exist at all. Anything else is a real failure.
@@ -95,8 +99,13 @@ one_pr() {
 			review: .reviews.nodes[0]
 		}')
 
-	compare=$(gh api "repos/$repo/compare/$base...$head" --jq '{ahead_by, behind_by}' 2>/dev/null \
-		|| echo '{"ahead_by":null,"behind_by":null}')
+	# gh api prints the error body on stdout, so validate the shape rather than trusting
+	# the exit code: a bare `|| echo FALLBACK` concatenates the two into invalid JSON.
+	compare=$(gh api "repos/$repo/compare/$base...$head_ref" --jq '{ahead_by, behind_by}' 2>/dev/null || true)
+	if ! echo "$compare" | jq -e 'type == "object" and (.behind_by | type) == "number"' >/dev/null 2>&1; then
+		echo "WARNING: compare $base...$head_ref failed for #$n; ahead_by/behind_by unknown" >&2
+		compare='{"ahead_by":null,"behind_by":null}'
+	fi
 
 	jq -n --argjson view "$view" --argjson threads "$threads" --argjson compare "$compare" \
 		--arg ci "$ci" --argjson failing "$failing" '
