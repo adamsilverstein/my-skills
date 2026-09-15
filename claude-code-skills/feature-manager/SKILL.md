@@ -111,6 +111,11 @@ stop. Resolving is Adam's call. When he says to resolve, do it in that worktree,
 push, and re-run the script starting from the next branch with the resolved branch as
 the base. Never `git rebase`, never `--force`, never `reset --hard` a shared branch.
 
+The script only touches branches that live in `origin`. A PR from a contributor's fork
+cannot be cascaded from here - the script exits 2 saying `origin/<branch> does not exist`.
+Report those PRs with their `Behind` count from **Status** and leave the update to their
+author; Adam decides whether to ask.
+
 Afterwards run **Status** so the table reflects the pushes (CI will show Running).
 
 ### CI
