@@ -74,7 +74,9 @@ Interpret the fields:
 
 **Outstanding feedback:** treat as Yes when `reviewDecision == "CHANGES_REQUESTED"`,
 or when the unresolved-thread count from the GraphQL query above is greater than 0.
-Otherwise No. When the comment triage below ran, use its counts instead.
+Otherwise No. When the comment triage below ran, use its counts in place of the
+thread count, but keep `CHANGES_REQUESTED` as outstanding even when triage finds
+nothing unanswered: the reviewer still has to re-review before the PR can merge.
 
 ### Optional: triage unanswered comments with Jev
 
@@ -116,8 +118,9 @@ example, `2 to answer (1 blocking)`, linked to `newest.url`, and count a PR with
 `blocking > 0` as "Changes requested" when ordering the recommendations.
 
 Privacy: the script skips private repositories, so embargoed or security work
-never reaches TypeSafe. Public comment text is sent to TypeSafe's API. Without the
-key, or if the script fails, fall back to the unresolved-thread count and say so
+never reaches TypeSafe. Public comment text is sent to TypeSafe's API. The script exits
+non-zero rather than print partial counts when a PR fails to load or a comment
+fails to classify. Without the key, or if the script fails, fall back to the unresolved-thread count and say so
 in one line.
 
 Without `--summary` the script writes a full report to
