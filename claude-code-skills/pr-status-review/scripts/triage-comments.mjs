@@ -496,8 +496,9 @@ const rows = recent.map( ( i ) => {
 } );
 
 // Older PRs collapse to one row each: the question there is close or revive.
+// A PR with any fresh feedback is active, so it stays out of this list.
 const stalePrs = new Map();
-for ( const item of actionable.filter( ( i ) => i.date < SINCE ) ) {
+for ( const item of actionable ) {
 	const entry = stalePrs.get( item.pr ) ?? { ...item, count: 0, blocking: 0 };
 	entry.count++;
 	entry.blocking = Math.max( entry.blocking, item.answers?.blocking.noul ?? 0 );
@@ -505,6 +506,11 @@ for ( const item of actionable.filter( ( i ) => i.date < SINCE ) ) {
 		entry.date = item.date;
 	}
 	stalePrs.set( item.pr, entry );
+}
+for ( const [ pr, entry ] of stalePrs ) {
+	if ( entry.date >= SINCE ) {
+		stalePrs.delete( pr );
+	}
 }
 const staleRows = [ ...stalePrs.values() ]
 	.sort( byNewest )
