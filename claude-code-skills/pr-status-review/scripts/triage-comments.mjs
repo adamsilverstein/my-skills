@@ -4,10 +4,14 @@
  *
  * Usage:
  *   node triage.mjs [--dry-run] [--limit N] [--repo owner/name] [--out file.md]
- *                   [--since YYYY-MM-DD] [--summary]
+ *                   [--since YYYY-MM-DD] [--summary] [--ci]
  *
  * --summary prints per-PR counts as JSON on stdout instead of writing the
  * report, for callers that fold the counts into their own table.
+ *
+ * --ci also asks Jev why each failing check on a PR's head commit failed
+ * (the PR's own bug, a flaky test, CI infrastructure, the base branch, or a
+ * metadata check), from the check summary and an excerpt of its job log.
  *
  * Comments older than --since (default: 90 days ago) are grouped into a
  * stale-PR list at the end of the report.
@@ -30,6 +34,7 @@ const option = ( name ) => {
 
 const DRY_RUN = flag( '--dry-run' );
 const SUMMARY = flag( '--summary' );
+const CI = flag( '--ci' );
 const LIMIT = Number( option( '--limit' ) ?? 300 );
 const DAY = 24 * 60 * 60 * 1000;
 const SINCE =
@@ -42,6 +47,9 @@ const OUT =
 	join( homedir(), 'Downloads', `pr-comment-triage-${ TODAY }.md` );
 const CONCURRENCY = 6;
 const MAX_BODY = 2000;
+const MAX_LOG = 6000;
+const MAX_LINE = 500;
+const MAX_CHECKS = 5;
 const API_URL = 'https://api.typesafe.ai/v1/systemone';
 
 if ( ! DRY_RUN && ! process.env.TYPESAFE_API_KEY ) {
@@ -90,10 +98,38 @@ const connection = ( name, before ) =>
     before ? `, before: ${ JSON.stringify( before ) }` : ''
   }) { ${ PAGE_INFO } ${ CONNECTIONS[ name ] } }`;
 
+// The head commit's checks and the files they might implicate, for --ci.
+// Both connections page forward through fetchCiPages().
+const NEXT_PAGE = 'pageInfo { hasNextPage endCursor }';
+
+const after = ( cursor ) =>
+  cursor ? `, after: ${ JSON.stringify( cursor ) }` : '';
+
+const filesConnection = ( cursor ) =>
+  `files(first: 100${ after( cursor ) }) { ${ NEXT_PAGE } nodes { path } }`;
+
+const contextsConnection = ( cursor ) =>
+  `commits(last: 1) { nodes { commit { statusCheckRollup { state contexts(first: 100${ after(
+    cursor
+  ) }) { ${ NEXT_PAGE } nodes {
+    __typename
+    ... on CheckRun {
+      name conclusion detailsUrl databaseId title summary
+      checkSuite { app { slug } workflowRun { workflow { name } } }
+    }
+    ... on StatusContext { context state targetUrl description }
+  } } } } } }`;
+
+const CI_FIELDS = `
+  baseRefName
+  ${ filesConnection() }
+  ${ contextsConnection() }`;
+
 const PR_FRAGMENT = `
 fragment PendingConversation on PullRequest {
   title
   url
+  ${ CI ? CI_FIELDS : '' }
   ${ Object.keys( CONNECTIONS )
     .map( ( name ) => connection( name ) )
     .join( '\n  ' ) }
@@ -172,6 +208,53 @@ async function fetchOlderPages( nameWithOwner, number, pr ) {
 	}
 }
 
+/**
+ * Append later pages of a PR's head-commit checks and, when a check failed,
+ * its changed files, so neither is cut off before failingChecks() runs.
+ *
+ * @param {string} nameWithOwner Repository, as owner/name.
+ * @param {number} number        PR number.
+ * @param {Object} pr            GraphQL pullRequest node, updated in place.
+ */
+async function fetchCiPages( nameWithOwner, number, pr ) {
+	const [ owner, name ] = nameWithOwner.split( '/' );
+	const page = async ( fields ) => {
+		const { stdout } = await ghAsync(
+			'api',
+			'graphql',
+			'-f',
+			`query=query { repository(owner: ${ JSON.stringify(
+				owner
+			) }, name: ${ JSON.stringify(
+				name
+			) }) { pullRequest(number: ${ number }) { ${ fields } } } }`
+		);
+		return JSON.parse( stdout ).data.repository.pullRequest;
+	};
+	const rollup = pr.commits?.nodes[ 0 ]?.commit.statusCheckRollup;
+	if ( ! rollup || ! FAILED.has( rollup.state ) ) {
+		return;
+	}
+	while ( rollup.contexts.pageInfo.hasNextPage ) {
+		const { contexts } = ( await page(
+			contextsConnection( rollup.contexts.pageInfo.endCursor )
+		) ).commits.nodes[ 0 ].commit.statusCheckRollup;
+		rollup.contexts = {
+			pageInfo: contexts.pageInfo,
+			nodes: [ ...rollup.contexts.nodes, ...contexts.nodes ],
+		};
+	}
+	while ( pr.files.pageInfo.hasNextPage ) {
+		const { files } = await page(
+			filesConnection( pr.files.pageInfo.endCursor )
+		);
+		pr.files = {
+			pageInfo: files.pageInfo,
+			nodes: [ ...pr.files.nodes, ...files.nodes ],
+		};
+	}
+}
+
 // Automated reviewers whose inline findings are worth classifying. Every
 // other bot, and these bots' summary comments, are dropped before Jev.
 const REVIEW_BOTS = new Set( [
@@ -214,6 +297,169 @@ const QUESTIONS = {
 			'The commenter is blocking merge or requesting changes they want addressed before the PR can land.',
 	},
 };
+
+const CI_QUESTIONS = {
+	cause: {
+		type: 'choice',
+		instructions:
+			'Classify why this CI check failed on the pull request, from the point of view of the PR author deciding what to do about it.',
+		criteria: {
+			real_failure:
+				"The PR's own changes caused it: a failing test, lint, type, or build error in code or tests the PR touches or depends on.",
+			flaky_test:
+				'A test that fails nondeterministically, such as a timeout waiting for the UI, a race, or an intermittent end-to-end assertion unrelated to the change.',
+			infrastructure:
+				'CI infrastructure trouble: a lost runner, network or package registry errors, rate limits, cache or artifact failures, or a cancelled or out-of-disk job.',
+			base_branch:
+				'Broken on the base branch or caused by an outdated branch: failures in code the PR does not touch, or that need a merge from the base branch.',
+			process_check:
+				'A policy or metadata check, such as a missing label, milestone, changelog entry, or PR description requirement, fixed without changing code.',
+		},
+	},
+	rerun_passes: {
+		type: 'noul',
+		instructions:
+			'Re-running this check without changing any code would likely make it pass.',
+	},
+};
+
+// What each cause asks of the author, most demanding first, so a PR with
+// mixed failures reports the step that actually unblocks it.
+const CI_ACTIONS = [
+	[ 'real_failure', 'fix' ],
+	[ 'base_branch', 'update branch' ],
+	[ 'process_check', 'fix metadata' ],
+	[ 'flaky_test', 'rerun' ],
+	[ 'infrastructure', 'rerun' ],
+];
+
+const FAILED = new Set( [
+	'FAILURE',
+	'TIMED_OUT',
+	'STARTUP_FAILURE',
+	'ERROR',
+	'CANCELLED',
+	'ACTION_REQUIRED',
+] );
+
+// Failed-test lines from Vitest, Jest, Playwright, and PHPUnit.
+const FAILED_TEST = /^\s*(×|✕|✘|FAIL\s|\d+\) \[|\d+\) \w+.*::)|\(\d+ tests? \| \d+ failed\)/;
+
+/**
+ * List the failing checks on a PR's head commit, one per workflow and job.
+ *
+ * @param {Object} pr GraphQL pullRequest node fetched with CI_FIELDS.
+ * @return {Array} Failing checks, at most MAX_CHECKS.
+ */
+function failingChecks( pr ) {
+	const rollup = pr.commits?.nodes[ 0 ]?.commit.statusCheckRollup;
+	if ( ! rollup || ! FAILED.has( rollup.state ) ) {
+		return [];
+	}
+	// Keyed by workflow as well as name, so same-named jobs in different
+	// workflows each get a row while reruns of one job collapse to one.
+	const byName = new Map();
+	for ( const node of rollup.contexts.nodes ) {
+		if ( node.__typename === 'CheckRun' && FAILED.has( node.conclusion ) ) {
+			const workflow =
+				node.checkSuite?.workflowRun?.workflow.name ??
+				node.checkSuite?.app?.slug;
+			byName.set( `${ workflow }/${ node.name }`, {
+				name: node.name,
+				workflow,
+				conclusion: node.conclusion,
+				url: node.detailsUrl,
+				// Actions check runs share their id with the job, which has the log.
+				jobId:
+					node.checkSuite?.app?.slug === 'github-actions'
+						? node.databaseId
+						: null,
+				details: [ node.title, node.summary ].filter( Boolean ).join( '\n' ),
+			} );
+		} else if ( node.__typename === 'StatusContext' && FAILED.has( node.state ) ) {
+			byName.set( `status/${ node.context }`, {
+				name: node.context,
+				conclusion: node.state,
+				url: node.targetUrl,
+				jobId: null,
+				details: node.description ?? '',
+			} );
+		}
+	}
+	return [ ...byName.values() ].slice( 0, MAX_CHECKS );
+}
+
+/**
+ * Cut a job log down to the lines that explain the failure.
+ *
+ * Post-job cleanup fills the end of every log, so the excerpt anchors on the
+ * runner's `##[error]` markers and the step they belong to instead of the tail.
+ *
+ * @param {string} log Raw job log.
+ * @return {Object} The failing step's name and the excerpt.
+ */
+function logExcerpt( log ) {
+	let lines = log
+		.split( '\n' )
+		.map( ( line ) =>
+			line
+				.replace( /^\d{4}-\d\d-\d\dT[\d:.]+Z ?/, '' )
+				.replace( /\x1b\[[0-9;]*m/g, '' )
+		);
+	const cleanup = lines.findIndex( ( line ) => line.startsWith( 'Post job cleanup' ) );
+	if ( cleanup > 0 ) {
+		lines = lines.slice( 0, cleanup );
+	}
+	const errors = lines
+		.map( ( line, index ) => ( line.startsWith( '##[error]' ) ? index : -1 ) )
+		.filter( ( index ) => index !== -1 );
+	const first = errors[ 0 ] ?? lines.length;
+	const step = lines
+		.slice( 0, first )
+		.findLast( ( line ) => line.startsWith( '##[group]Run ' ) )
+		?.slice( '##[group]Run '.length );
+	// Most telling lines first, so the MAX_LOG budget drops the context
+	// farthest from an error rather than the failures themselves.
+	const ranked = [
+		...lines
+			.map( ( line, index ) => ( FAILED_TEST.test( line ) ? index : -1 ) )
+			.filter( ( index ) => index !== -1 && index < first )
+			.slice( 0, 20 ),
+		...errors.slice( 0, 3 ),
+	];
+	for ( let distance = 1; distance <= 40; distance++ ) {
+		for ( const index of errors.slice( 0, 3 ) ) {
+			ranked.push( index - distance );
+		}
+	}
+	if ( ! errors.length ) {
+		for ( let i = lines.length - 1; i >= lines.length - 60; i-- ) {
+			ranked.push( i );
+		}
+	}
+	const keep = new Set();
+	let size = 0;
+	for ( const index of ranked ) {
+		const line = lines[ index ]?.slice( 0, MAX_LINE );
+		if (
+			line === undefined ||
+			keep.has( index ) ||
+			/^##\[(end)?group\]$/.test( line ) ||
+			size + line.length + 1 > MAX_LOG
+		) {
+			continue;
+		}
+		keep.add( index );
+		size += line.length + 1;
+	}
+	return {
+		step,
+		excerpt: [ ...keep ]
+			.sort( ( a, b ) => a - b )
+			.map( ( i ) => lines[ i ].slice( 0, MAX_LINE ) )
+			.join( '\n' ),
+	};
+}
 
 const clip = ( text ) =>
 	text.length > MAX_BODY ? `${ text.slice( 0, MAX_BODY ) }…` : text;
@@ -309,7 +555,7 @@ function pendingItems( pr ) {
 	return items;
 }
 
-async function askJev( state ) {
+async function askJev( state, questions = QUESTIONS ) {
 	// One deadline across retries, so a stalled request can't hold up the run.
 	const signal = AbortSignal.timeout( 60_000 );
 	for ( let attempt = 0; ; attempt++ ) {
@@ -323,7 +569,7 @@ async function askJev( state ) {
 			body: JSON.stringify( {
 				model: 'jev-latest',
 				state,
-				questions: QUESTIONS,
+				questions,
 			} ),
 		} );
 		if ( response.ok ) {
@@ -375,6 +621,7 @@ for ( let i = 0; i < prs.length; i += PRS_PER_QUERY ) {
 }
 
 let skippedPrivate = 0;
+const ciItems = [];
 // Every PR that loaded, so the summary can say which ones were never triaged.
 const coverage = [];
 const perBatch = await pool( batches, async ( batch ) => {
@@ -409,6 +656,9 @@ const perBatch = await pool( batches, async ( batch ) => {
 		coverage.push( { key, url: pr.url } );
 		try {
 			await fetchOlderPages( repository.nameWithOwner, number, pr );
+			if ( CI ) {
+				await fetchCiPages( repository.nameWithOwner, number, pr );
+			}
 		} catch ( error ) {
 			failures++;
 			console.error(
@@ -417,6 +667,27 @@ const perBatch = await pool( batches, async ( batch ) => {
 				}`
 			);
 			continue;
+		}
+		if ( CI ) {
+			for ( const check of failingChecks( pr ) ) {
+				ciItems.push( {
+					...check,
+					pr: key,
+					prUrl: pr.url,
+					nameWithOwner: repository.nameWithOwner,
+					state: {
+						pull_request: pr.title,
+						base_branch: pr.baseRefName,
+						changed_files: pr.files.nodes.map( ( f ) => f.path ),
+						check: {
+							workflow: check.workflow,
+							name: check.name,
+							conclusion: check.conclusion,
+							details: clip( check.details ),
+						},
+					},
+				} );
+			}
 		}
 		for ( const item of pendingItems( pr ) ) {
 			items.push( {
@@ -433,6 +704,13 @@ const items = perBatch.flat();
 console.error(
 	`${ items.length } comments waiting on you; dropped ${ droppedBots } bot comments; skipped ${ skippedPrivate } private-repo PRs.`
 );
+if ( CI ) {
+	console.error(
+		`${ ciItems.length } failing checks across ${
+			new Set( ciItems.map( ( c ) => c.pr ) ).size
+		} PRs.`
+	);
+}
 
 if ( DRY_RUN ) {
 	const byAuthor = {};
@@ -467,6 +745,45 @@ const answered = await pool( items, async ( item ) => {
 	}
 } );
 console.error( `Jev classified ${ answered.length } comments in ${ Date.now() - started }ms.` );
+
+// Logs expire and non-Actions checks have none; the check summary still goes to Jev.
+const ciStarted = Date.now();
+const ciAnswered = await pool( ciItems, async ( check ) => {
+	if ( check.jobId ) {
+		try {
+			const { stdout } = await ghAsync(
+				'api',
+				'--allow-escape-sequences',
+				`repos/${ check.nameWithOwner }/actions/jobs/${ check.jobId }/logs`
+			);
+			const { step, excerpt } = logExcerpt( stdout );
+			check.state.failed_step = step;
+			check.state.log_excerpt = excerpt;
+		} catch {
+			check.state.log_excerpt = '(log unavailable)';
+		}
+	}
+	try {
+		const { answers } = await askJev( check.state, CI_QUESTIONS );
+		return { ...check, answers };
+	} catch ( error ) {
+		failures++;
+		console.error( `  ${ check.url }: ${ error.message }` );
+		return { ...check, answers: null };
+	}
+} );
+if ( CI ) {
+	console.error(
+		`Jev classified ${ ciAnswered.length } failing checks in ${
+			Date.now() - ciStarted
+		}ms.`
+	);
+}
+
+const ciAction = ( checks ) =>
+	CI_ACTIONS.find( ( [ cause ] ) =>
+		checks.some( ( c ) => ( c.answers?.cause.choice ?? 'real_failure' ) === cause )
+	)?.[ 1 ];
 
 const percent = ( value ) => `${ Math.round( value * 100 ) }%`;
 const oneLine = ( text ) =>
@@ -526,6 +843,29 @@ const staleRows = [ ...stalePrs.values() ]
 			) } | ${ i.count } | ${ percent( i.blocking ) } |`
 	);
 
+function ciReport() {
+	const rows = ciAnswered.map( ( c ) => {
+		const a = c.answers;
+		const cause = a
+			? `${ a.cause.choice } (${ percent( a.cause.confidence ) })`
+			: 'error';
+		return `| [${ c.pr }](${ c.prUrl }) | [${ oneLine( c.name ) }](${
+			c.url
+		}) | ${ cause } | ${ a ? percent( a.rerun_passes.noul ) : '-' } | ${ oneLine(
+			c.state.failed_step ?? ''
+		) } |`;
+	} );
+	return `
+## Failing CI
+
+${ ciAnswered.length } failing checks, one row per workflow job, at most ${ MAX_CHECKS } per PR.
+
+| PR | Check | Cause | Rerun passes | Failed step |
+| --- | --- | --- | --- | --- |
+${ rows.join( '\n' ) }
+`;
+}
+
 const report = `# PR comment triage - ${ TODAY }
 
 ${ recent.length } comments since ${ SINCE } likely need action, newest first. ${ quiet } more were filtered out as approvals, nits, or FYIs, and ${ droppedBots } bot comments were never sent.${
@@ -543,7 +883,7 @@ ${ stalePrs.size } PRs whose unanswered feedback is all older than ${ SINCE }.
 | Last feedback | PR | Title | Open items | Blocking |
 | --- | --- | --- | --- | --- |
 ${ staleRows.join( '\n' ) }
-`;
+${ CI ? ciReport() : '' }`;
 
 if ( SUMMARY ) {
 	// Counts from a partial run would look complete, so let the caller fall back.
@@ -577,10 +917,29 @@ if ( SUMMARY ) {
 			}
 		}
 	}
+	const ciByPr = new Map();
+	for ( const check of ciAnswered ) {
+		ciByPr.set( check.pr, [ ...( ciByPr.get( check.pr ) ?? [] ), check ] );
+	}
+	for ( const [ pr, checks ] of ciByPr ) {
+		perPr[ pr ].ci = {
+			failing: checks.length,
+			next: ciAction( checks ),
+			checks: checks.map( ( c ) => ( {
+				name: c.name,
+				url: c.url,
+				cause: c.answers?.cause.choice ?? 'error',
+				rerunPasses: c.answers?.rerun_passes.noul ?? null,
+			} ) ),
+		};
+	}
 	console.log( JSON.stringify( perPr, null, 2 ) );
 	process.exit( 0 );
 }
 
 writeFileSync( OUT, report );
-writeFileSync( OUT.replace( /\.md$/, '.json' ), JSON.stringify( answered, null, 2 ) );
+writeFileSync(
+	OUT.replace( /\.md$/, '.json' ),
+	JSON.stringify( CI ? { comments: answered, ci: ciAnswered } : answered, null, 2 )
+);
 console.error( `Wrote ${ OUT }` );

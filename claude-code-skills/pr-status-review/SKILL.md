@@ -87,7 +87,7 @@ sends every comment that came in after your last reply to
 model, which labels each one:
 
 ```bash
-node ~/.claude/skills/pr-status-review/scripts/triage-comments.mjs --summary [--repo OWNER/REPO]
+node ~/.claude/skills/pr-status-review/scripts/triage-comments.mjs --summary --ci [--repo OWNER/REPO]
 ```
 
 It needs Node 20+ and an authenticated `gh`. It fetches ten PRs per GraphQL
@@ -124,16 +124,40 @@ Feedback cell as, for
 example, `2 to answer (1 blocking)`, linked to `newest.url`, and count a PR with
 `blocking > 0` as "Changes requested" when ordering the recommendations.
 
+With `--ci`, the script also sends each failing check on a PR's head commit
+(up to five per PR) to Jev, along with the check's summary and an excerpt of its
+Actions job log. Jev says why it failed. Each triaged PR with failing CI then gets a
+`ci` entry:
+
+```json
+"ci": {
+  "failing": 2,
+  "next": "update branch",
+  "checks": [
+    { "name": "Required changes from trunk", "url": "...", "cause": "base_branch", "rerunPasses": 0.21 },
+    { "name": "Playwright - 3", "url": "...", "cause": "flaky_test", "rerunPasses": 0.46 }
+  ]
+}
+```
+
+`cause` is one of `real_failure`, `flaky_test`, `infrastructure`, `base_branch`,
+or `process_check` (a missing label, changelog entry, and so on). `next` is the
+step that unblocks the PR, taken from its most demanding failure in this order:
+`fix`, `update branch`, `fix metadata`, `rerun`. Show the CI cell as, for example,
+`Failing (rerun)`, and use `next` in the Next action column. A PR whose failures
+are all `rerun` is a quick win, so rank it just above real CI fixes. Job logs
+expire after 90 days; for older runs Jev judges from the check summary alone.
+
 Privacy: the script skips private repositories, so embargoed or security work
-never reaches TypeSafe. Public comment text is sent to TypeSafe's API. The script exits
+never reaches TypeSafe. Public comment text, and with `--ci` public CI log excerpts, is sent to TypeSafe's API. The script exits
 non-zero rather than print partial counts when a PR fails to load or a comment
-fails to classify. Without the key, or if the script fails, fall back to the unresolved-thread count and say so
+or failing check fails to classify. Without the key, or if the script fails, fall back to the unresolved-thread count and say so
 in one line.
 
 Without `--summary` the script writes a full report to
 `~/Downloads/pr-comment-triage-DATE.md`: recent comments needing action, newest
 first, plus a list of stale PRs (feedback older than `--since`, default 90 days)
-to close or revive. Offer it when the user wants the comment-level detail.
+to close or revive, and with `--ci` a table of failing checks and their causes. Offer it when the user wants the comment-level detail.
 
 ## Step 3: Build the status table
 
