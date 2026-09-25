@@ -48,6 +48,7 @@ const OUT =
 const CONCURRENCY = 6;
 const MAX_BODY = 2000;
 const MAX_LOG = 6000;
+const MAX_LINE = 500;
 const MAX_CHECKS = 5;
 const API_URL = 'https://api.typesafe.ai/v1/systemone';
 
@@ -98,10 +99,19 @@ const connection = ( name, before ) =>
   }) { ${ PAGE_INFO } ${ CONNECTIONS[ name ] } }`;
 
 // The head commit's checks and the files they might implicate, for --ci.
-const CI_FIELDS = `
-  baseRefName
-  files(first: 50) { nodes { path } }
-  commits(last: 1) { nodes { commit { statusCheckRollup { state contexts(first: 100) { nodes {
+// Both connections page forward through fetchCiPages().
+const NEXT_PAGE = 'pageInfo { hasNextPage endCursor }';
+
+const after = ( cursor ) =>
+  cursor ? `, after: ${ JSON.stringify( cursor ) }` : '';
+
+const filesConnection = ( cursor ) =>
+  `files(first: 100${ after( cursor ) }) { ${ NEXT_PAGE } nodes { path } }`;
+
+const contextsConnection = ( cursor ) =>
+  `commits(last: 1) { nodes { commit { statusCheckRollup { state contexts(first: 100${ after(
+    cursor
+  ) }) { ${ NEXT_PAGE } nodes {
     __typename
     ... on CheckRun {
       name conclusion detailsUrl databaseId title summary
@@ -109,6 +119,11 @@ const CI_FIELDS = `
     }
     ... on StatusContext { context state targetUrl description }
   } } } } } }`;
+
+const CI_FIELDS = `
+  baseRefName
+  ${ filesConnection() }
+  ${ contextsConnection() }`;
 
 const PR_FRAGMENT = `
 fragment PendingConversation on PullRequest {
@@ -193,6 +208,53 @@ async function fetchOlderPages( nameWithOwner, number, pr ) {
 	}
 }
 
+/**
+ * Append later pages of a PR's head-commit checks and, when a check failed,
+ * its changed files, so neither is cut off before failingChecks() runs.
+ *
+ * @param {string} nameWithOwner Repository, as owner/name.
+ * @param {number} number        PR number.
+ * @param {Object} pr            GraphQL pullRequest node, updated in place.
+ */
+async function fetchCiPages( nameWithOwner, number, pr ) {
+	const [ owner, name ] = nameWithOwner.split( '/' );
+	const page = async ( fields ) => {
+		const { stdout } = await ghAsync(
+			'api',
+			'graphql',
+			'-f',
+			`query=query { repository(owner: ${ JSON.stringify(
+				owner
+			) }, name: ${ JSON.stringify(
+				name
+			) }) { pullRequest(number: ${ number }) { ${ fields } } } }`
+		);
+		return JSON.parse( stdout ).data.repository.pullRequest;
+	};
+	const rollup = pr.commits?.nodes[ 0 ]?.commit.statusCheckRollup;
+	if ( ! rollup || ! FAILED.has( rollup.state ) ) {
+		return;
+	}
+	while ( rollup.contexts.pageInfo.hasNextPage ) {
+		const { contexts } = ( await page(
+			contextsConnection( rollup.contexts.pageInfo.endCursor )
+		) ).commits.nodes[ 0 ].commit.statusCheckRollup;
+		rollup.contexts = {
+			pageInfo: contexts.pageInfo,
+			nodes: [ ...rollup.contexts.nodes, ...contexts.nodes ],
+		};
+	}
+	while ( pr.files.pageInfo.hasNextPage ) {
+		const { files } = await page(
+			filesConnection( pr.files.pageInfo.endCursor )
+		);
+		pr.files = {
+			pageInfo: files.pageInfo,
+			nodes: [ ...pr.files.nodes, ...files.nodes ],
+		};
+	}
+}
+
 // Automated reviewers whose inline findings are worth classifying. Every
 // other bot, and these bots' summary comments, are dropped before Jev.
 const REVIEW_BOTS = new Set( [
@@ -271,13 +333,20 @@ const CI_ACTIONS = [
 	[ 'infrastructure', 'rerun' ],
 ];
 
-const FAILED = new Set( [ 'FAILURE', 'TIMED_OUT', 'STARTUP_FAILURE', 'ERROR' ] );
+const FAILED = new Set( [
+	'FAILURE',
+	'TIMED_OUT',
+	'STARTUP_FAILURE',
+	'ERROR',
+	'CANCELLED',
+	'ACTION_REQUIRED',
+] );
 
 // Failed-test lines from Vitest, Jest, Playwright, and PHPUnit.
 const FAILED_TEST = /^\s*(×|✕|✘|FAIL\s|\d+\) \[|\d+\) \w+.*::)|\(\d+ tests? \| \d+ failed\)/;
 
 /**
- * List the failing checks on a PR's head commit, one per check name.
+ * List the failing checks on a PR's head commit, one per workflow and job.
  *
  * @param {Object} pr GraphQL pullRequest node fetched with CI_FIELDS.
  * @return {Array} Failing checks, at most MAX_CHECKS.
@@ -287,12 +356,17 @@ function failingChecks( pr ) {
 	if ( ! rollup || ! FAILED.has( rollup.state ) ) {
 		return [];
 	}
+	// Keyed by workflow as well as name, so same-named jobs in different
+	// workflows each get a row while reruns of one job collapse to one.
 	const byName = new Map();
 	for ( const node of rollup.contexts.nodes ) {
 		if ( node.__typename === 'CheckRun' && FAILED.has( node.conclusion ) ) {
-			byName.set( node.name, {
+			const workflow =
+				node.checkSuite?.workflowRun?.workflow.name ??
+				node.checkSuite?.app?.slug;
+			byName.set( `${ workflow }/${ node.name }`, {
 				name: node.name,
-				workflow: node.checkSuite?.workflowRun?.workflow.name,
+				workflow,
 				conclusion: node.conclusion,
 				url: node.detailsUrl,
 				// Actions check runs share their id with the job, which has the log.
@@ -303,7 +377,7 @@ function failingChecks( pr ) {
 				details: [ node.title, node.summary ].filter( Boolean ).join( '\n' ),
 			} );
 		} else if ( node.__typename === 'StatusContext' && FAILED.has( node.state ) ) {
-			byName.set( node.context, {
+			byName.set( `status/${ node.context }`, {
 				name: node.context,
 				conclusion: node.state,
 				url: node.targetUrl,
@@ -344,32 +418,46 @@ function logExcerpt( log ) {
 		.slice( 0, first )
 		.findLast( ( line ) => line.startsWith( '##[group]Run ' ) )
 		?.slice( '##[group]Run '.length );
-	const keep = new Set();
-	// Test runners name the failing tests long before the job's final error.
-	lines
-		.map( ( line, index ) => ( FAILED_TEST.test( line ) ? index : -1 ) )
-		.filter( ( index ) => index !== -1 && index < first )
-		.slice( 0, 20 )
-		.forEach( ( index ) => keep.add( index ) );
-	for ( const index of errors.slice( 0, 3 ) ) {
-		for ( let i = Math.max( 0, index - 40 ); i <= index; i++ ) {
-			keep.add( i );
+	// Most telling lines first, so the MAX_LOG budget drops the context
+	// farthest from an error rather than the failures themselves.
+	const ranked = [
+		...lines
+			.map( ( line, index ) => ( FAILED_TEST.test( line ) ? index : -1 ) )
+			.filter( ( index ) => index !== -1 && index < first )
+			.slice( 0, 20 ),
+		...errors.slice( 0, 3 ),
+	];
+	for ( let distance = 1; distance <= 40; distance++ ) {
+		for ( const index of errors.slice( 0, 3 ) ) {
+			ranked.push( index - distance );
 		}
 	}
 	if ( ! errors.length ) {
-		for ( let i = Math.max( 0, lines.length - 60 ); i < lines.length; i++ ) {
-			keep.add( i );
+		for ( let i = lines.length - 1; i >= lines.length - 60; i-- ) {
+			ranked.push( i );
 		}
 	}
-	const excerpt = [ ...keep ]
-		.sort( ( a, b ) => a - b )
-		.map( ( i ) => lines[ i ] )
-		.filter( ( line ) => ! /^##\[(end)?group\]$/.test( line ) )
-		.join( '\n' );
+	const keep = new Set();
+	let size = 0;
+	for ( const index of ranked ) {
+		const line = lines[ index ]?.slice( 0, MAX_LINE );
+		if (
+			line === undefined ||
+			keep.has( index ) ||
+			/^##\[(end)?group\]$/.test( line ) ||
+			size + line.length + 1 > MAX_LOG
+		) {
+			continue;
+		}
+		keep.add( index );
+		size += line.length + 1;
+	}
 	return {
 		step,
-		excerpt:
-			excerpt.length > MAX_LOG ? `…${ excerpt.slice( -MAX_LOG ) }` : excerpt,
+		excerpt: [ ...keep ]
+			.sort( ( a, b ) => a - b )
+			.map( ( i ) => lines[ i ].slice( 0, MAX_LINE ) )
+			.join( '\n' ),
 	};
 }
 
@@ -568,6 +656,9 @@ const perBatch = await pool( batches, async ( batch ) => {
 		coverage.push( { key, url: pr.url } );
 		try {
 			await fetchOlderPages( repository.nameWithOwner, number, pr );
+			if ( CI ) {
+				await fetchCiPages( repository.nameWithOwner, number, pr );
+			}
 		} catch ( error ) {
 			failures++;
 			console.error(
@@ -767,7 +858,7 @@ function ciReport() {
 	return `
 ## Failing CI
 
-${ ciAnswered.length } failing checks, one row per check name, at most ${ MAX_CHECKS } per PR.
+${ ciAnswered.length } failing checks, one row per workflow job, at most ${ MAX_CHECKS } per PR.
 
 | PR | Check | Cause | Rerun passes | Failed step |
 | --- | --- | --- | --- | --- |
