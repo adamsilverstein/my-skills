@@ -62,26 +62,35 @@ const ME = gh( 'api', 'user', '--jq', '.login' ).trim();
 
 const PRS_PER_QUERY = 10;
 
-const PR_FRAGMENT = `
-fragment PendingConversation on PullRequest {
-  title
-  url
-  reviewThreads(last: 50) {
-    nodes {
+const PAGE_INFO = 'pageInfo { hasPreviousPage startCursor }';
+
+// Feedback connections, newest page first. Longer histories are paged back
+// by fetchOlderPages() so nothing unanswered falls off the end.
+const CONNECTIONS = {
+  reviewThreads: `nodes {
       isResolved
       isOutdated
       path
       comments(last: 4) {
         nodes { author { __typename login } body createdAt url }
       }
-    }
-  }
-  reviews(last: 20) {
-    nodes { author { __typename login } state body submittedAt url }
-  }
-  comments(last: 30) {
-    nodes { author { __typename login } body createdAt url }
-  }
+    }`,
+  reviews: 'nodes { author { __typename login } state body submittedAt url }',
+  comments: 'nodes { author { __typename login } body createdAt url }',
+};
+
+const connection = ( name, before ) =>
+  `${ name }(last: 100${
+    before ? `, before: ${ JSON.stringify( before ) }` : ''
+  }) { ${ PAGE_INFO } ${ CONNECTIONS[ name ] } }`;
+
+const PR_FRAGMENT = `
+fragment PendingConversation on PullRequest {
+  title
+  url
+  ${ Object.keys( CONNECTIONS )
+    .map( ( name ) => connection( name ) )
+    .join( '\n  ' ) }
 }`;
 
 /**
@@ -101,6 +110,41 @@ const batchQuery = ( batch ) =>
 			) }) { isPrivate pullRequest(number: ${ number }) { ...PendingConversation } }`;
 		} )
 		.join( '\n' ) }\n}\n${ PR_FRAGMENT }`;
+
+let failures = 0;
+
+/**
+ * Prepend older pages to any feedback connection that did not fit in one page.
+ *
+ * @param {string} nameWithOwner Repository, as owner/name.
+ * @param {number} number        PR number.
+ * @param {Object} pr            GraphQL pullRequest node, updated in place.
+ */
+async function fetchOlderPages( nameWithOwner, number, pr ) {
+	const [ owner, name ] = nameWithOwner.split( '/' );
+	for ( const key of Object.keys( CONNECTIONS ) ) {
+		while ( pr[ key ].pageInfo.hasPreviousPage ) {
+			const { stdout } = await ghAsync(
+				'api',
+				'graphql',
+				'-f',
+				`query=query { repository(owner: ${ JSON.stringify(
+					owner
+				) }, name: ${ JSON.stringify(
+					name
+				) }) { pullRequest(number: ${ number }) { ${ connection(
+					key,
+					pr[ key ].pageInfo.startCursor
+				) } } } }`
+			);
+			const page = JSON.parse( stdout ).data.repository.pullRequest[ key ];
+			pr[ key ] = {
+				pageInfo: page.pageInfo,
+				nodes: [ ...page.nodes, ...pr[ key ].nodes ],
+			};
+		}
+	}
+}
 
 // Automated reviewers whose inline findings are worth classifying. Every
 // other bot, and these bots' summary comments, are dropped before Jev.
@@ -231,8 +275,11 @@ function pendingItems( pr ) {
 }
 
 async function askJev( state ) {
+	// One deadline across retries, so a stalled request can't hold up the run.
+	const signal = AbortSignal.timeout( 60_000 );
 	for ( let attempt = 0; ; attempt++ ) {
 		const response = await fetch( API_URL, {
+			signal,
 			method: 'POST',
 			headers: {
 				Authorization: `Bearer ${ process.env.TYPESAFE_API_KEY }`,
@@ -308,23 +355,39 @@ const perBatch = await pool( batches, async ( batch ) => {
 		console.error( `  batch error: ${ error.stderr?.trim() || error.message }` );
 	}
 	const data = output ? JSON.parse( output ).data ?? {} : {};
-	return batch.flatMap( ( { number, repository }, index ) => {
+	const items = [];
+	for ( const [ index, { number, repository } ] of batch.entries() ) {
 		const repo = data[ `pr${ index }` ];
 		if ( ! repo?.pullRequest ) {
-			return [];
+			failures++;
+			continue;
 		}
 		if ( repo.isPrivate ) {
 			skippedPrivate++;
-			return [];
+			continue;
 		}
 		const pr = repo.pullRequest;
-		return pendingItems( pr ).map( ( item ) => ( {
-			...item,
-			pr: `${ repository.nameWithOwner }#${ number }`,
-			prUrl: pr.url,
-			prTitle: pr.title,
-		} ) );
-	} );
+		try {
+			await fetchOlderPages( repository.nameWithOwner, number, pr );
+		} catch ( error ) {
+			failures++;
+			console.error(
+				`  ${ repository.nameWithOwner }#${ number }: ${
+					error.stderr?.trim() || error.message
+				}`
+			);
+			continue;
+		}
+		for ( const item of pendingItems( pr ) ) {
+			items.push( {
+				...item,
+				pr: `${ repository.nameWithOwner }#${ number }`,
+				prUrl: pr.url,
+				prTitle: pr.title,
+			} );
+		}
+	}
+	return items;
 } );
 const items = perBatch.flat();
 console.error(
@@ -358,6 +421,7 @@ const answered = await pool( items, async ( item ) => {
 		const { answers } = await askJev( item.state );
 		return { ...item, answers };
 	} catch ( error ) {
+		failures++;
 		console.error( `  ${ item.url }: ${ error.message }` );
 		return { ...item, answers: null };
 	}
@@ -418,7 +482,9 @@ const staleRows = [ ...stalePrs.values() ]
 
 const report = `# PR comment triage - ${ TODAY }
 
-${ recent.length } comments since ${ SINCE } likely need action, newest first. ${ quiet } more were filtered out as approvals, nits, or FYIs, and ${ droppedBots } bot comments were never sent. Classified by Jev (\`jev-latest\`).
+${ recent.length } comments since ${ SINCE } likely need action, newest first. ${ quiet } more were filtered out as approvals, nits, or FYIs, and ${ droppedBots } bot comments were never sent.${
+	failures ? ` ${ failures } PRs or comments failed to load or classify; see stderr.` : ''
+} Classified by Jev (\`jev-latest\`).
 
 | Date | PR | From | Category | Blocking | Comment |
 | --- | --- | --- | --- | --- | --- |
@@ -434,6 +500,11 @@ ${ staleRows.join( '\n' ) }
 `;
 
 if ( SUMMARY ) {
+	// Counts from a partial run would look complete, so let the caller fall back.
+	if ( failures ) {
+		console.error( `${ failures } PRs or comments failed; not printing a summary.` );
+		process.exit( 1 );
+	}
 	const perPr = {};
 	for ( const item of answered ) {
 		const entry = ( perPr[ item.pr ] ??= {
