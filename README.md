@@ -29,7 +29,7 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 | [core-commit](./claude-code-skills/core-commit/SKILL.md) | Write WordPress core commit messages following official guidelines |
 | [feature-manager](./claude-code-skills/feature-manager/SKILL.md) | Track the multi-PR features Adam drives on GitHub: registry, stack status, cascade updates from trunk, CI, feedback triage, tracking issue upkeep, watch mode |
 | [ci-fixer](./claude-code-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
-| [pr-status-review](./claude-code-skills/pr-status-review/SKILL.md) | Review your open PRs in a status table (CI, mergeability, feedback) and suggest what to work on next |
+| [pr-status-review](./claude-code-skills/pr-status-review/SKILL.md) | Review your open PRs in a status table (CI, mergeability, feedback) and suggest what to work on next; optionally sorts unanswered comments with the Jev model |
 | [commit](./claude-code-skills/commit/SKILL.md) | Create atomic commits with clear, descriptive messages following WordPress core style |
 | [web-performance-tuner](./claude-code-skills/web-performance-tuner/SKILL.md) | Diagnose and fix web performance issues with measurable validation |
 | [wp-admin-tester](./claude-code-skills/wp-admin-tester/SKILL.md) | Debug and test wp-admin flows locally: REST API, browser automation, PHP/JS log capture |
