@@ -64,19 +64,25 @@ const PRS_PER_QUERY = 10;
 
 const PAGE_INFO = 'pageInfo { hasPreviousPage startCursor }';
 
+const COMMENT_FIELDS = 'nodes { author { __typename login } body createdAt url }';
+
+const threadComments = ( before ) =>
+  `comments(last: 20${
+    before ? `, before: ${ JSON.stringify( before ) }` : ''
+  }) { ${ PAGE_INFO } ${ COMMENT_FIELDS } }`;
+
 // Feedback connections, newest page first. Longer histories are paged back
 // by fetchOlderPages() so nothing unanswered falls off the end.
 const CONNECTIONS = {
   reviewThreads: `nodes {
+      id
       isResolved
       isOutdated
       path
-      comments(last: 4) {
-        nodes { author { __typename login } body createdAt url }
-      }
+      ${ threadComments() }
     }`,
   reviews: 'nodes { author { __typename login } state body submittedAt url }',
-  comments: 'nodes { author { __typename login } body createdAt url }',
+  comments: COMMENT_FIELDS,
 };
 
 const connection = ( name, before ) =>
@@ -144,6 +150,26 @@ async function fetchOlderPages( nameWithOwner, number, pr ) {
 			};
 		}
 	}
+	// Long unresolved threads can hide an unanswered request behind later replies.
+	for ( const thread of pr.reviewThreads.nodes ) {
+		while ( ! thread.isResolved && thread.comments.pageInfo.hasPreviousPage ) {
+			const { stdout } = await ghAsync(
+				'api',
+				'graphql',
+				'-f',
+				`query=query { node(id: ${ JSON.stringify(
+					thread.id
+				) }) { ... on PullRequestReviewThread { ${ threadComments(
+					thread.comments.pageInfo.startCursor
+				) } } } }`
+			);
+			const page = JSON.parse( stdout ).data.node.comments;
+			thread.comments = {
+				pageInfo: page.pageInfo,
+				nodes: [ ...page.nodes, ...thread.comments.nodes ],
+			};
+		}
+	}
 }
 
 // Automated reviewers whose inline findings are worth classifying. Every
@@ -205,32 +231,41 @@ let droppedBots = 0;
 function pendingItems( pr ) {
 	const items = [];
 
+	// Every inline comment after the author's last reply in its thread, so a
+	// trailing thank-you can't hide the change request before it.
 	for ( const thread of pr.reviewThreads.nodes ) {
+		if ( thread.isResolved ) {
+			continue;
+		}
 		const comments = thread.comments.nodes;
-		const last = comments.at( -1 );
-		if ( thread.isResolved || ! last || login( last ) === ME ) {
-			continue;
-		}
-		if ( isBot( last ) && ! REVIEW_BOTS.has( login( last ) ) ) {
-			droppedBots++;
-			continue;
-		}
-		items.push( {
-			kind: thread.isOutdated ? 'review thread (outdated)' : 'review thread',
-			author: login( last ),
-			url: last.url,
-			date: last.createdAt,
-			excerpt: last.body,
-			state: {
-				pull_request: pr.title,
-				file: thread.path,
-				pr_author: ME,
-				earlier_comments: comments.slice( 0, -1 ).map( ( c ) => ( {
-					author: login( c ),
-					body: clip( c.body ),
-				} ) ),
-				latest_comment: { author: login( last ), body: clip( last.body ) },
-			},
+		const lastMine = comments.findLastIndex( ( c ) => login( c ) === ME );
+		comments.forEach( ( comment, index ) => {
+			if ( index <= lastMine ) {
+				return;
+			}
+			if ( isBot( comment ) && ! REVIEW_BOTS.has( login( comment ) ) ) {
+				droppedBots++;
+				return;
+			}
+			items.push( {
+				kind: thread.isOutdated ? 'review thread (outdated)' : 'review thread',
+				author: login( comment ),
+				url: comment.url,
+				date: comment.createdAt,
+				excerpt: comment.body,
+				state: {
+					pull_request: pr.title,
+					file: thread.path,
+					pr_author: ME,
+					earlier_comments: comments
+						.slice( Math.max( 0, index - 3 ), index )
+						.map( ( c ) => ( { author: login( c ), body: clip( c.body ) } ) ),
+					latest_comment: {
+						author: login( comment ),
+						body: clip( comment.body ),
+					},
+				},
+			} );
 		} );
 	}
 
