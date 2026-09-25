@@ -75,7 +75,7 @@ Interpret the fields:
 **Outstanding feedback:** treat as Yes when `reviewDecision == "CHANGES_REQUESTED"`,
 or when the unresolved-thread count from the GraphQL query above is greater than 0.
 Otherwise No. When the comment triage below ran, use its counts in place of the
-thread count, but keep `CHANGES_REQUESTED` as outstanding even when triage finds
+thread count for each PR it triaged, but keep `CHANGES_REQUESTED` as outstanding even when triage finds
 nothing unanswered: the reviewer still has to re-review before the PR can merge.
 
 ### Optional: triage unanswered comments with Jev
@@ -102,6 +102,10 @@ Stdout is a JSON map keyed by `owner/repo#number`:
     "needsAction": 2,
     "blocking": 1,
     "newest": { "date": "2026-09-06T06:23:56Z", "author": "t-hamano", "url": "...", "category": "actionable_change" }
+  },
+  "adamsilverstein/private-plugin#12": {
+    "url": "https://github.com/adamsilverstein/private-plugin/pull/12",
+    "skipped": "private"
   }
 }
 ```
@@ -113,7 +117,10 @@ Stdout is a JSON map keyed by `owner/repo#number`:
 - `blocking` - the subset of those that Jev rates at least 50% likely to block merge.
 - `newest` - the latest comment that needs action, to link from the table.
 
-PRs with nothing pending are not in the map. Show the Feedback cell as, for
+Every PR the script loaded is in the map; one with nothing pending has zero
+counts. An entry with `skipped` (private repos) was never triaged, so keep its
+unresolved-thread count, as you would for any PR missing from the map. Show the
+Feedback cell as, for
 example, `2 to answer (1 blocking)`, linked to `newest.url`, and count a PR with
 `blocking > 0` as "Changes requested" when ordering the recommendations.
 

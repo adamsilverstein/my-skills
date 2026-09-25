@@ -375,6 +375,8 @@ for ( let i = 0; i < prs.length; i += PRS_PER_QUERY ) {
 }
 
 let skippedPrivate = 0;
+// Every PR that loaded, so the summary can say which ones were never triaged.
+const coverage = [];
 const perBatch = await pool( batches, async ( batch ) => {
 	let output;
 	try {
@@ -397,11 +399,14 @@ const perBatch = await pool( batches, async ( batch ) => {
 			failures++;
 			continue;
 		}
+		const pr = repo.pullRequest;
+		const key = `${ repository.nameWithOwner }#${ number }`;
 		if ( repo.isPrivate ) {
 			skippedPrivate++;
+			coverage.push( { key, url: pr.url, skipped: 'private' } );
 			continue;
 		}
-		const pr = repo.pullRequest;
+		coverage.push( { key, url: pr.url } );
 		try {
 			await fetchOlderPages( repository.nameWithOwner, number, pr );
 		} catch ( error ) {
@@ -416,7 +421,7 @@ const perBatch = await pool( batches, async ( batch ) => {
 		for ( const item of pendingItems( pr ) ) {
 			items.push( {
 				...item,
-				pr: `${ repository.nameWithOwner }#${ number }`,
+				pr: key,
 				prUrl: pr.url,
 				prTitle: pr.title,
 			} );
@@ -546,15 +551,16 @@ if ( SUMMARY ) {
 		console.error( `${ failures } PRs or comments failed; not printing a summary.` );
 		process.exit( 1 );
 	}
+	// Every loaded PR gets an entry, so a PR missing from the map or marked
+	// `skipped` is one the caller must judge by its thread count instead.
 	const perPr = {};
+	for ( const { key, url, skipped } of coverage ) {
+		perPr[ key ] = skipped
+			? { url, skipped }
+			: { url, pending: 0, needsAction: 0, blocking: 0, newest: null };
+	}
 	for ( const item of answered ) {
-		const entry = ( perPr[ item.pr ] ??= {
-			url: item.prUrl,
-			pending: 0,
-			needsAction: 0,
-			blocking: 0,
-			newest: null,
-		} );
+		const entry = perPr[ item.pr ];
 		entry.pending++;
 		if ( needsAction( item ) ) {
 			entry.needsAction++;
