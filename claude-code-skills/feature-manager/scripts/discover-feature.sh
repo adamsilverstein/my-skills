@@ -19,7 +19,7 @@
 #
 # depth is 0 for a PR based on a branch that is not another PR in the set (usually trunk),
 # 1 for a PR based on a depth-0 PR, and so on. A single chain comes out bottom to top.
-# The script only reads. It never writes the registry; Claude does that after Adam confirms.
+# The script only reads. It never writes the registry; Claude does that after the user confirms.
 set -euo pipefail
 
 if [ $# -lt 2 ]; then

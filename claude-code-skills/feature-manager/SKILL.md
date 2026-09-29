@@ -1,12 +1,12 @@
 ---
 name: feature-manager
-description: "Track and tend the multi-PR features Adam drives on GitHub. Use when Adam names a feature he is working on ('work on suggestion mode', 'check on the notes followers feature', 'how is X doing'), asks to register a feature from a tracking issue, or asks for any feature-wide chore: status of the whole stack, bring the PRs up to date with trunk, get CI green everywhere, find new feedback or comments that need addressing, refresh the tracking issue, or watch the feature for changes."
+description: "Track and tend the multi-PR features the user drives on GitHub. Use when the user names a feature they are working on ('work on suggestion mode', 'check on the notes followers feature', 'how is X doing'), asks to register a feature from a tracking issue, or asks for any feature-wide chore: status of the whole stack, bring the PRs up to date with trunk, get CI green everywhere, find new feedback or comments that need addressing, refresh the tracking issue, or watch the feature for changes."
 ---
 
 # Feature manager
 
 A feature is a tracking issue plus the PRs that implement it, often a stack of branches
-based on one another. Adam registers a feature once; after that, "work on suggestion mode"
+based on one another. The user registers a feature once; after that, "work on suggestion mode"
 means the same thing to Claude every time. This skill keeps the registry and runs the
 recurring chores over the whole feature at once.
 
@@ -16,7 +16,7 @@ reads and edits registry files directly.
 
 ## The registry
 
-One YAML file per feature at `~/.claude/features/<slug>.yaml`. Hand-editable; Adam may
+One YAML file per feature at `~/.claude/features/<slug>.yaml`. Hand-editable; the user may
 change it without saying so, so read it fresh at the start of every task.
 
 ```yaml
@@ -35,20 +35,20 @@ notes: |
   Waiting on design feedback for the sidebar summary wording.
 ```
 
-**Resolving a name.** Match what Adam said against `name` and `aliases` across every file
+**Resolving a name.** Match what the user said against `name` and `aliases` across every file
 in the directory, case-insensitively and ignoring the word "feature". One match: use it.
 None: offer to register, or list what exists. Several: ask which.
 
 **The PR list** for any chore is the stack in order, then side PRs, then the bundle.
-Merged or closed PRs stay in the file until Adam removes them; skip them for git work.
+Merged or closed PRs stay in the file until the user removes them; skip them for git work.
 
 ## Chores
 
-| Adam says | Do |
+| The user says | Do |
 |---|---|
 | "register X from #NNN" / "add this feature" | **Register** |
 | "status of X", "check on X", "how is X doing" | **Status** |
-| "update X", "bring X up to date", "rebase X on trunk" | **Update** (merge, never rebase; say so if he said rebase) |
+| "update X", "bring X up to date", "rebase X on trunk" | **Update** (merge, never rebase; say so if they said rebase) |
 | "fix CI on X", "get X green" | **CI** |
 | "any feedback on X", "anything new on X", "what needs a reply" | **Feedback** |
 | "work on X", "open X", "switch to X" | **Work on** |
@@ -62,15 +62,15 @@ Merged or closed PRs stay in the file until Adam removes them; skip them for git
 bash ~/.claude/skills/feature-manager/scripts/discover-feature.sh WordPress/gutenberg 73411
 ```
 
-The output lists every PR the issue body references plus Adam's open PRs whose base is
+The output lists every PR the issue body references plus the user's open PRs whose base is
 a branch already in the set, each with `depth` (0 = based on trunk) and a `bundle_candidate`
 flag. Build the proposed file from it: open PRs sorted by depth form `stack`; open PRs at
 depth 0 that are not the chain bottom, or that sit beside another PR at the same depth,
 go to `side_prs`; a bundle candidate goes to `bundle`. Leave merged and closed PRs out.
 Pick a slug and two or three aliases from the issue title. Set `last_checked` to now.
 
-Show Adam the whole proposed file and ask before writing it. Discovery is a guess about
-structure; he knows which branch is the bundle and which PR is a side quest.
+Show the user the whole proposed file and ask before writing it. Discovery is a guess about
+structure; they know which branch is the bundle and which PR is a side quest.
 
 ### Status
 
@@ -90,7 +90,7 @@ needs the cascade. Mark drafts. Link every PR.
 
 Then **Needs you**, at most five lines, in this order: conflicts, failing CI, changes
 requested, unresolved threads with someone else's last word, PRs behind their base. If
-nothing qualifies, say "all green" and stop. Do not recommend merging; Adam decides.
+nothing qualifies, say "all green" and stop. Do not recommend merging; the user decides.
 
 ### Update
 
@@ -102,19 +102,19 @@ bash ~/.claude/skills/feature-manager/scripts/cascade-update.sh <worktree> trunk
 
 `UP-TO-DATE` in a dry run is relative to the parent as it is now; once trunk lands in the
 bottom layer every layer above will need its turn, which is what the real run does. If the
-worktree is dirty the script refuses; report that rather than committing or stashing for him.
+worktree is dirty the script refuses; report that rather than committing or stashing for them.
 
 Then run without `--dry-run`. Each layer merges its parent with a merge commit and pushes
 to origin. The bundle merges the top of the stack last, so bundle-only commits survive.
 On `CONFLICT` (exit 3) the merge is left in progress: report the branch and files, then
-stop. Resolving is Adam's call. When he says to resolve, do it in that worktree, commit,
+stop. Resolving is the user's call. When they say to resolve, do it in that worktree, commit,
 push, and re-run the script starting from the next branch with the resolved branch as
 the base. Never `git rebase`, never `--force`, never `reset --hard` a shared branch.
 
 The script only touches branches that live in `origin`. A PR from a contributor's fork
 cannot be cascaded from here - the script exits 2 saying `origin/<branch> does not exist`.
 Report those PRs with their `Behind` count from **Status** and leave the update to their
-author; Adam decides whether to ask.
+author; the user decides whether to ask.
 
 Afterwards run **Status** so the table reflects the pushes (CI will show Running).
 
@@ -128,7 +128,7 @@ touching the next. Report which PRs were red, what changed, and which are still 
 ### Feedback
 
 ```
-bash ~/.claude/skills/feature-manager/scripts/feature-feedback.sh WordPress/gutenberg <last_checked> 73411 80427 80428 ... --exclude adamsilverstein
+bash ~/.claude/skills/feature-manager/scripts/feature-feedback.sh WordPress/gutenberg <last_checked> 73411 80427 80428 ...
 ```
 
 Group by target, people first, bots (`is_bot: true`) in a separate short section with
@@ -136,16 +136,16 @@ unresolved items only. For each item say who, where (linked), a one-line gist, a
 classification: **code change**, **reply**, or **nothing** (already resolved, a thanks, a
 bot summary). For code changes and replies, propose the response in one or two lines.
 
-Nothing gets changed or posted from this chore. When Adam picks items, code changes happen
+Nothing gets changed or posted from this chore. When the user picks items, code changes happen
 in the worktree with atomic commits, and replies go through post-review-gate in adams-voice
 with claude-attribution. Advance `last_checked` in the registry only after the digest is in
-front of Adam, never before, so a crashed run does not swallow comments.
+front of the user, never before, so a crashed run does not swallow comments.
 
 ### Work on
 
 Read the registry, `cd` to `worktree`. If it does not exist, create it from the repo's
 main checkout: `git worktree add ~/repositories/worktrees/<issue>-<slug> <branch>` (the
-worktrunk skill applies when `wt` is set up for that repo). Check out the branch Adam
+worktrunk skill applies when `wt` is set up for that repo). Check out the branch the user
 named, or the top of the stack by default, fast-forward it from origin, and run `nvm use`
 when the repo has an `.nvmrc`. Say which branch is checked out and which PR it belongs to,
 then wait for the actual task.
@@ -155,7 +155,7 @@ then wait for the actual task.
 Build a status block from the **Status** table and place it in the tracking issue body
 between `<!-- feature-manager:status -->` and `<!-- /feature-manager:status -->`, adding
 the markers at the end of the body if absent. Text outside the markers is never touched.
-The block opens with a claude-attribution header. This is a post under Adam's name: draft
+The block opens with a claude-attribution header. This is a post under the user's name: draft
 the full new body to a file, run it through post-review-gate, then
 `gh issue edit NNN --repo OWNER/REPO --body-file <file>`, and log it as kind `issue`.
 
@@ -174,10 +174,10 @@ Forget: confirm, then delete the file and its snapshot under `~/.claude/features
 
 ## Guardrails
 
-- **Read the registry fresh, every task.** Adam edits it by hand.
+- **Read the registry fresh, every task.** The user edits it by hand.
 - **Never merge a PR, never force-push, never rebase, never resolve a conflict unasked.**
 - **Nothing posts without post-review-gate.** Replies, issue body edits, all of it.
-- **Discovery proposes, Adam confirms.** Do not write a registry file he has not seen.
+- **Discovery proposes, the user confirms.** Do not write a registry file they have not seen.
 - **Scope is one feature.** Cross-repo "what should I work on next" is pr-status-review's job;
   fixing a red check is ci-fixer's job. Delegate rather than reimplement.
 - **One question at a time when a name or a branch is ambiguous.** Guessing wrong pushes to
@@ -187,8 +187,8 @@ Forget: confirm, then delete the file and its snapshot under `~/.claude/features
 
 | Thought | Reality |
 |---|---|
-| "The conflict is trivial, I'll just resolve it." | Adam asked for an update, not a resolution. Report and stop. |
-| "Rebase would give cleaner history." | He chose merges so review threads stay anchored. Merge. |
-| "The bot's suggestion is right, I'll apply it." | Feedback proposes; Adam picks. Put it in the digest. |
-| "Discovery looks obviously right, I'll save it." | He knows which PR is the bundle and which is a side quest. Show it first. |
+| "The conflict is trivial, I'll just resolve it." | The user asked for an update, not a resolution. Report and stop. |
+| "Rebase would give cleaner history." | The user chose merges so review threads stay anchored. Merge. |
+| "The bot's suggestion is right, I'll apply it." | Feedback proposes; the user picks. Put it in the digest. |
+| "Discovery looks obviously right, I'll save it." | The user knows which PR is the bundle and which is a side quest. Show it first. |
 | "I'll bump last_checked now so I don't forget." | Bump it after the digest is in chat, or a crash loses comments. |
