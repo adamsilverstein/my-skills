@@ -4,7 +4,7 @@
 # Usage: feature-feedback.sh OWNER/REPO SINCE TARGET [TARGET...] [--exclude LOGIN]
 #   SINCE    ISO 8601 UTC timestamp, e.g. 2026-09-10T00:00:00Z. Use 1970-01-01T00:00:00Z for everything.
 #   TARGET   issue or PR number; the script works out which
-#   --exclude LOGIN   skip this author (default: the gh user, so Adam's own comments drop out)
+#   --exclude LOGIN   skip this author (default: the gh user, so the user's own comments drop out)
 #
 # Prints one JSON object per line, oldest first:
 #
