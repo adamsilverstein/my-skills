@@ -71,11 +71,12 @@ A decision card is the last thing in the message. Then stop and wait. One card p
 
 | Reply | Meaning |
 |---|---|
-| `a`, `b`, `c`, `d` | That option. |
+| A letter shown on this card | That option. |
+| A letter not on this card | Record nothing. Say which letters this card has and show it again. |
 | `ok`, `y`, `yes`, `rec` | The recommended option. |
-| `skip` | Leave it open. It is listed as open in the summary. |
+| `skip` | Leave it open. It is listed as open in the summary. Later decisions that depend on it are not asked; they are listed as open too, as `waiting on N`. |
 | `back` | Show the previous card again, with the earlier answer noted. |
-| `all` | Accept the recommendation on this card and every later one, then go to the summary. Cards skipped earlier stay open. |
+| `all` | Accept the recommendation on this card and every later one, then go to the summary. Cards skipped earlier stay open, and so do the decisions waiting on them. |
 | Anything else | A custom answer or a question. Record the answer, or reply to the question and show the same card again with the same number. If the question turns up a real alternative, add it to the card as a new lettered option. |
 
 Then, in one line above the next card (or the summary card), confirm what was recorded: `2 of 5: A, shared constant in config.ts.`
@@ -101,6 +102,8 @@ After the last card:
 ```
 
 The top rule counts the decisions made, with `○` for each one still open. Give each decision a two or three word name. Mark answers that differ from the recommendation with `(yours)`.
+
+When the user names a number, show that card again. If the new answer changes what a later decision is about, that later answer no longer stands: reopen it and show its card again before returning to the summary. The same applies when a skipped decision gets answered and others were waiting on it.
 
 Under the summary card, list in a sentence anything you decided yourself in step 1. Once the user says go, carry out the decisions that were made and leave the open ones alone; if the work cannot proceed without one, show its card again.
 
