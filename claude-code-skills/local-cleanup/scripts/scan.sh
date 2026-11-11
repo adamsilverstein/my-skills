@@ -61,10 +61,13 @@ sort -u "$OUT/repos.txt" | while read -r repo_dir; do
 	slugs=$(cd "$repo_dir" && gh repo view --json nameWithOwner,parent \
 		-q '[.nameWithOwner, (.parent // {} | if .owner then .owner.login + "/" + .name else empty end)] | .[]' 2>/dev/null)
 	for slug in $slugs; do
-		author="--author=@me"; [ "${slug%%/*}" = "$ME" ] && author=""
+		# Own repos: every author (agents open PRs there), but only branches pushed
+		# to the user's own repo, so a fork PR with the same branch name never matches.
+		author="--author=@me"; head=""
+		[ "${slug%%/*}" = "$ME" ] && { author=""; head="select(.headRepositoryOwner.login == \"$ME\") | "; }
 		gh pr list -R "$slug" $author --state all --limit 1000 \
-			--json headRefName,state,number \
-			-q ".[] | [\"$repo_dir\", .headRefName, .state, (.number|tostring), \"$slug\"] | @tsv" \
+			--json headRefName,headRepositoryOwner,state,number \
+			-q ".[] | $head[\"$repo_dir\", .headRefName, .state, (.number|tostring), \"$slug\"] | @tsv" \
 			>> "$OUT/prs.tsv" 2>/dev/null
 	done
 done
@@ -75,8 +78,15 @@ docker ps --format '{{.Names}}' 2>/dev/null | while read -r c; do
 done | grep -o "$WT/[^/]*" | sed "s|$WT/||" | sort -u > "$OUT/in-use.txt"
 
 # --- 4. Classify worktrees ------------------------------------------------------------
+for f in tier-remove-worktree tier-node-modules review-merged-but-dirty keep-in-use keep; do : > "$OUT/$f.tsv"; done
 awk -F'\t' -v recent="$RECENT_CUTOFF" -v idle="$IDLE_CUTOFF" -v OUT="$OUT" '
-	FILENAME ~ /prs.tsv$/ { pr[$1 SUBSEP $2] = $3 "#" $4; next }
+	BEGIN { rank["CLOSED"] = 1; rank["MERGED"] = 2; rank["OPEN"] = 3 }
+	# A branch can have several PRs: OPEN beats MERGED beats CLOSED, whatever the order.
+	FILENAME ~ /prs.tsv$/ {
+		k = $1 SUBSEP $2; split(pr[k], cur, "#")
+		if (!(k in pr) || rank[$3] > rank[cur[1]]) pr[k] = $3 "#" $4
+		next
+	}
 	FILENAME ~ /in-use.txt$/ { use[$1] = 1; next }
 	{
 		state = ($7 == "") ? "DETACHED" : (($8 SUBSEP $7) in pr ? pr[$8 SUBSEP $7] : "NOPR")
@@ -89,7 +99,6 @@ awk -F'\t' -v recent="$RECENT_CUTOFF" -v idle="$IDLE_CUTOFF" -v OUT="$OUT" '
 		if ($3 > 0 && $4 < idle && $5 == 0) { print row > (OUT "/tier-node-modules.tsv"); next }
 		print row > (OUT "/keep.tsv")
 	}' "$OUT/prs.tsv" "$OUT/in-use.txt" "$OUT/worktrees.tsv"
-touch "$OUT/tier-remove-worktree.tsv" "$OUT/tier-node-modules.tsv" "$OUT/review-merged-but-dirty.tsv" "$OUT/keep-in-use.tsv"
 
 # --- 5. wp-env environments whose source is gone or slated for removal -----------------
 : > "$OUT/tier-wpenv.tsv"
@@ -99,7 +108,9 @@ if [ -d "$HOME/.wp-env" ]; then
 		src=$(grep -ho '/Users/[^": ]*repositories[^": ]*' "$env"docker-compose.yml 2>/dev/null | head -1)
 		wt=""; case "$src" in "$WT"/*) wt=${src#"$WT"/}; wt=${wt%%/*} ;; esac
 		reason=""
-		if [ -z "$src" ] || [ ! -e "$src" ]; then reason=source-gone
+		# No recognizable source path: unknown, so leave it alone.
+		if [ -z "$src" ]; then continue
+		elif [ ! -e "$src" ]; then reason=source-gone
 		elif [ -n "$wt" ] && cut -f1 "$OUT/tier-remove-worktree.tsv" | grep -qx "$wt"; then reason=worktree-being-removed
 		fi
 		[ -n "$reason" ] && printf '%s\t%s\t%s\t%s\n' "$e" "$(kb "$env")" "$reason" "${wt:-$src}" >> "$OUT/tier-wpenv.tsv"
@@ -123,7 +134,9 @@ find "$DL" -maxdepth 1 -mindepth 1 -mtime +"$DOWNLOADS_DAYS" ! -name .localized 
 
 # --- 8. Caches -----------------------------------------------------------------------------
 : > "$OUT/caches.tsv"
-for c in "$HOME/.npm/_cacache" "$HOME/Library/Caches/ms-playwright" "$HOME/Library/Caches/Cypress" \
+# Playwright is left out: it deletes browser builds no installed client needs on
+# its next `playwright install`, and only it knows which builds each version needs.
+for c in "$HOME/.npm/_cacache" "$HOME/Library/Caches/Cypress" \
 	"$HOME/.cache/puppeteer" "$HOME/.cache/codex-runtimes" "$HOME/Library/Caches/node-gyp" \
 	"$HOME/Library/Caches/composer" "$HOME/Library/Caches/Yarn"; do
 	[ -e "$c" ] && printf '%s\t%s\n' "$c" "$(kb "$c")" >> "$OUT/caches.tsv"
