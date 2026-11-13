@@ -11,7 +11,8 @@
 #   3  no terminal could be opened here: fall back to cards in the chat
 #   4  timed out waiting; the window may still be open
 #
-# DECISION_CARDS_TERMINAL=tmux|iterm|terminal|linux|none forces a choice.
+# DECISION_CARDS_TERMINAL=tmux|iterm|iterm-window|terminal|linux|none forces
+# a choice.
 
 set -u
 
@@ -88,12 +89,34 @@ case "$choice" in
 		# wait loop falls back to a split pane when the popup fails.
 		background tmux display-popup -E -w 78 -h 32 "$runner"
 		;;
-	iterm)
-		osascript - "$runner" >/dev/null <<'APPLESCRIPT' || exit 3
+	iterm | iterm-window)
+		# Split the pane this session runs in, so the cards open right under
+		# the conversation and the pane closes when they are done. A new
+		# window is the fallback when that pane cannot be found.
+		session="${ITERM_SESSION_ID#*:}"
+		[ "$choice" = iterm-window ] && session=""
+		osascript - "$runner" "$session" >/dev/null <<'APPLESCRIPT' || exit 3
 on run argv
+	set cardCommand to item 1 of argv
+	set sessionId to item 2 of argv
 	tell application "iTerm"
+		if sessionId is not "" then
+			repeat with aWindow in windows
+				repeat with aTab in tabs of aWindow
+					repeat with aSession in sessions of aTab
+						if (id of aSession) is sessionId then
+							tell aSession
+								set cardSession to (split horizontally with default profile command cardCommand)
+							end tell
+							tell cardSession to select
+							return
+						end if
+					end repeat
+				end repeat
+			end repeat
+		end if
 		activate
-		set cardWindow to (create window with default profile command (item 1 of argv))
+		set cardWindow to (create window with default profile command cardCommand)
 		tell current session of cardWindow
 			set columns to 78
 			set rows to 32

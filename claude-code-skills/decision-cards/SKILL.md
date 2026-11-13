@@ -65,7 +65,7 @@ Run `scripts/launch.sh` from this skill's directory in the background (`run_in_b
 <skill directory>/scripts/launch.sh /path/to/decisions.json
 ```
 
-It opens the UI where the user can type into it (a tmux popup, or a new iTerm or Terminal window), waits, and prints the result. Tell the user in one line that the cards are open in a new window, then end the turn. Do not print the cards in the chat as well.
+It opens the UI where the user can type into it, waits, and prints the result. In iTerm that is a split pane under the conversation, in tmux a popup over it; both close when the user is done. Elsewhere on macOS it is a new Terminal window. The cards cannot be drawn in the conversation pane itself, because Claude Code owns its keyboard. Tell the user in one line that the cards are open, then end the turn. Do not print the cards in the chat as well.
 
 What the user sees:
 
