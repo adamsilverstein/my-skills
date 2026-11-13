@@ -62,11 +62,31 @@ if [ -z "$choice" ]; then
 	fi
 fi
 
+# A launcher that stays in the foreground of this script runs here, so the
+# timeout below still applies and a failed start can be told from a slow user.
+launcher_pid=""
+background() {
+	"$@" >/dev/null 2>&1 &
+	launcher_pid=$!
+}
+
+# True when the background launcher has exited with an error.
+launcher_failed() {
+	[ -n "$launcher_pid" ] || return 1
+	kill -0 "$launcher_pid" 2>/dev/null && return 1
+	wait "$launcher_pid"
+	local status=$?
+	launcher_pid=""
+	[ "$status" -ne 0 ]
+}
+
+tmux_split_tried=""
+
 case "$choice" in
 	tmux)
-		# A popup blocks until the UI exits. Older tmux has no popups.
-		tmux display-popup -E -w 78 -h 32 "$runner" 2>/dev/null ||
-			tmux split-window -v "$runner" || exit 3
+		# A popup blocks until the UI exits. Older tmux has no popups; the
+		# wait loop falls back to a split pane when the popup fails.
+		background tmux display-popup -E -w 78 -h 32 "$runner"
 		;;
 	iterm)
 		osascript - "$runner" >/dev/null <<'APPLESCRIPT' || exit 3
@@ -87,7 +107,7 @@ APPLESCRIPT
 		open "$runner" || exit 3
 		;;
 	linux)
-		x-terminal-emulator -e "$runner" >/dev/null 2>&1 &
+		background x-terminal-emulator -e "$runner"
 		;;
 	*)
 		echo "decision-cards: no terminal available here" >&2
@@ -97,7 +117,19 @@ esac
 
 waited=0
 while [ ! -f "$result" ]; do
+	if launcher_failed && [ ! -f "$result" ]; then
+		if [ "$choice" = tmux ] && [ -z "$tmux_split_tried" ]; then
+			tmux_split_tried=1
+			tmux split-window -v "$runner" 2>/dev/null && continue
+		fi
+		echo "decision-cards: the terminal did not start" >&2
+		exit 3
+	fi
 	if [ "$waited" -ge "$timeout" ]; then
+		if [ -n "$launcher_pid" ]; then
+			kill "$launcher_pid" 2>/dev/null
+			[ "$choice" = tmux ] && tmux display-popup -C 2>/dev/null
+		fi
 		echo "decision-cards: no answer after ${timeout}s" >&2
 		exit 4
 	fi
