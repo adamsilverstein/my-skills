@@ -72,7 +72,7 @@ def load(path):
             clean_options.append(
                 {
                     "label": _text(option, "label", f"{where} option {LETTERS[index]}"),
-                    "detail": str(option.get("detail") or "").strip(),
+                    "detail": _plain(option.get("detail")),
                 }
             )
         valid = LETTERS[: len(clean_options)]
@@ -84,30 +84,37 @@ def load(path):
         if answer is not None:
             if isinstance(answer, str) and answer.strip().upper() in valid and len(answer.strip()) == 1:
                 answer = {"choice": answer.strip().upper()}
-            elif isinstance(answer, str) and answer.strip():
-                answer = {"choice": OTHER, "text": answer.strip()}
+            elif isinstance(answer, str) and _plain(answer):
+                answer = {"choice": OTHER, "text": _plain(answer)}
             else:
                 raise InputError(f"{where}: 'answer' must be an option letter or free text")
 
         clean.append(
             {
-                "name": str(raw.get("name") or "").strip() or f"Decision {number}",
+                "name": _plain(raw.get("name")) or f"Decision {number}",
                 "question": question,
-                "why": str(raw.get("why") or "").strip(),
+                "why": _plain(raw.get("why")),
                 "options": clean_options,
                 "recommended": recommended,
-                "pick": str(raw.get("pick") or "").strip(),
+                "pick": _plain(raw.get("pick")),
                 "answer": answer,
             }
         )
-    return str(data.get("title") or "").strip(), clean
+    return _plain(data.get("title")), clean
+
+
+def _plain(value):
+    """One line of printable text. Control characters are dropped so that
+    nothing in the file can send escape sequences to the terminal."""
+    spaced = "".join(" " if char.isspace() else char for char in str(value or ""))
+    return " ".join("".join(char for char in spaced if char.isprintable()).split())
 
 
 def _text(obj, key, where):
     value = obj.get(key)
-    if not isinstance(value, str) or not value.strip():
+    if not isinstance(value, str) or not _plain(value):
         raise InputError(f"{where}: '{key}' is required")
-    return " ".join(value.split())
+    return _plain(value)
 
 
 # ---------------------------------------------------------------- state

@@ -140,6 +140,18 @@ class InputTest(unittest.TestCase):
             with self.assertRaises(decide.InputError):
                 self.check(bad)
 
+    def test_control_characters_are_stripped(self):
+        evil = "x\x1b[2Jy\nz\x07"
+        _, decisions = self.check({"decisions": [{
+            "name": evil, "question": evil, "why": evil, "pick": evil, "answer": evil + " more",
+            "options": [{"label": evil, "detail": evil}, evil], "recommended": "A",
+        }]})
+        screen = "\n".join(decide.paint(decide.frame(decide.App(decisions), 80, 32), color=False))
+        screen += json.dumps(decisions, ensure_ascii=False)
+        self.assertNotIn("\x1b", screen)
+        self.assertNotIn("\x07", screen)
+        self.assertIn("x[2Jy z", screen)
+
     def test_parse_keys(self):
         self.assertEqual(decide.parse_keys("a\x1b[D\x1b[C\r"), ["a", "left", "right", "enter"])
         self.assertEqual(decide.parse_keys("\x1b"), ["esc"])
