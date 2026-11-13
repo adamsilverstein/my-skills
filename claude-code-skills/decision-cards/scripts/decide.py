@@ -8,13 +8,14 @@ Usage:
 Standard library only. See ../SKILL.md for the JSON formats.
 """
 
+import codecs
 import json
 import os
 import select
 import shutil
 import signal
 import sys
-import textwrap
+import unicodedata
 
 LETTERS = "ABCDEF"
 MAX_WIDTH = 72
@@ -131,6 +132,7 @@ class App:
         self.cursor = 0
         self.moved = False
         self.typing = None  # text being typed for a custom answer
+        self.scroll = 0  # first visible row of a summary taller than the window
         self.done = None  # "go" or "cancelled"
         first_open = next((i for i, a in enumerate(self.answers) if a is None), self.count)
         self.goto(first_open)
@@ -143,6 +145,7 @@ class App:
         self.pos = max(0, min(self.count, pos))
         self.moved = False
         self.typing = None
+        self.scroll = 0
         if not self.on_summary:
             decision = self.decisions[self.pos]
             answer = self.answers[self.pos]
@@ -199,6 +202,10 @@ class App:
             self.done = "go"
         elif key == "left":
             self.goto(self.count - 1)
+        elif key == "up":
+            self.scroll = max(self.scroll - 1, 0)
+        elif key == "down":
+            self.scroll += 1  # frame() clamps it to the content
         elif len(key) == 1 and key.isdigit() and 1 <= int(key) <= min(self.count, 9):
             self.goto(int(key) - 1)
 
@@ -240,28 +247,54 @@ class App:
 # characters, so the box drawing stays aligned without measuring ANSI codes.
 
 
+def char_cells(char):
+    """How many terminal columns one character takes."""
+    if unicodedata.combining(char) or unicodedata.category(char) in ("Mn", "Me", "Cf"):
+        return 0
+    return 2 if unicodedata.east_asian_width(char) in "WF" else 1
+
+
+def cells(text):
+    return sum(char_cells(char) for char in text)
+
+
+def clip(text, width):
+    """The longest start of `text` that fits in `width` columns."""
+    used = 0
+    for index, char in enumerate(text):
+        used += char_cells(char)
+        if used > width:
+            return text[:index]
+    return text
+
+
+def clip_tail(text, width):
+    """The longest end of `text` that fits in `width` columns."""
+    return clip(text[::-1], width)[::-1]
+
+
 def seg_len(line):
-    return sum(len(text) for text, _ in line)
+    return sum(cells(text) for text, _ in line)
 
 
 def fit(line, width):
-    """Truncate or pad a line to exactly `width` characters."""
+    """Truncate or pad a line to exactly `width` columns."""
     out, used = [], 0
     for text, style in line:
         room = width - used
         if room <= 0:
             break
-        if len(text) > room:
-            text = text[: max(room - 1, 0)] + "…"
+        if cells(text) > room:
+            text = clip(text, room - 1) + "…"
         out.append((text, style))
-        used += len(text)
+        used += cells(text)
     if used < width:
         out.append((" " * (width - used), None))
     return out
 
 
 def with_tag(line, tag, width):
-    """Right-align the `tag` segments on a line of `width` characters."""
+    """Right-align the `tag` segments on a line of `width` columns."""
     if not tag:
         return line
     gap = width - seg_len(line) - seg_len(tag)
@@ -269,7 +302,28 @@ def with_tag(line, tag, width):
 
 
 def wrap(text, width):
-    return textwrap.wrap(text, max(width, 8)) or [""]
+    """Word wrap by terminal columns, so wide (CJK) text stays in the box."""
+    width = max(width, 8)
+    lines, current = [], ""
+    for word in text.split():
+        while cells(word) > width:
+            if current:
+                lines.append(current)
+                current = ""
+            head = clip(word, width)
+            lines.append(head)
+            word = word[len(head):]
+        if not word:
+            continue
+        candidate = f"{current} {word}" if current else word
+        if cells(candidate) <= width:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines or [""]
 
 
 def dots(app):
@@ -287,12 +341,13 @@ def dots(app):
 
 
 def card_body(app, pos, inner, spacing):
-    """The lines inside the box for one card."""
+    """The lines inside the box for one card, and the rows of the highlighted option."""
     decision = app.decisions[pos]
     answer = app.answers[pos]
     current = pos == app.pos
     indent = 6
     lines = []
+    focus = None
 
     def gap(level=1):
         if spacing >= level:
@@ -316,6 +371,7 @@ def card_body(app, pos, inner, spacing):
         tag = [("★ recommended", "accent")] if letter == decision["recommended"] else []
         label_width = inner - indent - (seg_len(tag) + 1 if tag else 0)
         label_style = "bold" if pointed or chosen else None
+        first_row = len(lines)
         for row, text in enumerate(wrap(option["label"], label_width)):
             if row == 0:
                 head = [("▸ " if pointed else "  ", "accent_bold"), (letter, "accent_bold" if pointed else "bold"), (" ✓ " if chosen else "   ", "good")]
@@ -325,6 +381,8 @@ def card_body(app, pos, inner, spacing):
         if option["detail"]:
             for text in wrap(option["detail"], inner - indent):
                 lines.append([(" " * indent, None), (text, "dim")])
+        if pointed:
+            focus = (first_row, len(lines) - 1)
         if index < len(decision["options"]) - 1:
             gap(2)
 
@@ -342,18 +400,18 @@ def card_body(app, pos, inner, spacing):
         for index, text in enumerate(wrap(pick, inner - indent)):
             lines.append([("PICK  " if index == 0 else " " * indent, "dim"), (text, None)])
     gap()
-    return lines
+    if focus and current and app.cursor == len(decision["options"]) - 1:
+        focus = (focus[0], len(lines) - 1)  # the last option brings PICK into view
+    return lines, focus
 
 
 def summary_body(app, inner, spacing):
     lines = [[]] if spacing else []
-    name_width = min(max(len(d["name"]) for d in app.decisions), 22)
+    name_width = min(max(cells(d["name"]) for d in app.decisions), 22)
     number_width = len(str(app.count))
     for index, (decision, answer) in enumerate(zip(app.decisions, app.answers)):
-        line = [
-            (str(index + 1).rjust(number_width) + "  ", "dim"),
-            (fit([(decision["name"], None)], name_width)[0][0].ljust(name_width) + "  ", None),
-        ]
+        line = [(str(index + 1).rjust(number_width) + "  ", "dim")]
+        line += fit([(decision["name"], None)], name_width) + [("  ", None)]
         tag = []
         if not answer:
             line += [("-  ", "dim"), ("open", "warn")]
@@ -370,7 +428,7 @@ def summary_body(app, inner, spacing):
         lines.append(with_tag(line, tag, inner))
     if spacing:
         lines.append([])
-    return lines
+    return lines, None
 
 
 def body_for(app, pos, inner, spacing):
@@ -379,11 +437,22 @@ def body_for(app, pos, inner, spacing):
     return card_body(app, pos, inner, spacing)
 
 
-def hint_line(app):
+def hint_line(app, cols):
     key = "bold"
     sep = ("  ·  ", "dim")
     if app.typing is not None:
-        return [("Your answer ▸ ", "accent_bold"), (app.typing, None), ("█", "accent"), ("     enter", key), (" save", "dim"), sep, ("esc", key), (" back", "dim")]
+        prefix = "Your answer ▸ "
+        tail = [("     enter", key), (" save", "dim"), sep, ("esc", key), (" back", "dim")]
+        room = cols - 3 - cells(prefix) - 1
+        if room - seg_len(tail) >= 20:
+            room -= seg_len(tail)
+        else:
+            tail = []
+        # Show the end of a long answer, so the cursor never leaves the screen.
+        shown = app.typing
+        if cells(shown) > room:
+            shown = "…" + clip_tail(shown, max(room - 1, 1))
+        return [(prefix, "accent_bold"), (shown, None), ("█", "accent")] + tail
     if app.on_summary:
         parts = [[("enter", key), (" go", "dim")], [("←", key), (" back", "dim")]]
         if app.count > 1:
@@ -419,14 +488,28 @@ def frame(app, cols, rows):
     # Use the roomiest spacing at which every card fits, so the box keeps
     # one height from the first card to the summary and nothing jumps.
     for spacing in (2, 1, 0):
-        height = max(len(body_for(app, pos, inner, spacing)) for pos in positions)
+        height = max(len(body_for(app, pos, inner, spacing)[0]) for pos in positions)
         if height + chrome <= rows:
             break
     height = max(min(height, rows - chrome), 1)
 
-    body = body_for(app, app.pos, inner, spacing)
-    if len(body) > height:
-        body = body[: height - 1] + [[("… make the window taller to see the rest", "warn")]]
+    body, focus = body_for(app, app.pos, inner, spacing)
+    limit = len(body) - height
+    if limit > 0:
+        # Too tall for the window: show a slice. On a card it follows the
+        # highlighted option, on the summary it follows the up and down keys.
+        if focus is None:
+            app.scroll = offset = max(0, min(app.scroll, limit))
+        else:
+            # Scroll only as far as it takes to show the whole option.
+            offset = max(0, min(focus[1] - (height - 2), limit, max(focus[0] - 1, 0)))
+        body = body[offset : offset + height]
+        if offset > 0:
+            body[0] = [("↑ more above", "warn")]
+        if offset < limit:
+            body[-1] = [("↓ more below  ·  ↑ ↓ to scroll", "warn")]
+    else:
+        app.scroll = 0
     body += [[] for _ in range(height - len(body))]
 
     if app.on_summary:
@@ -446,7 +529,7 @@ def frame(app, cols, rows):
         lines.append([(" ", None), ("│ ", "dim")] + fit(line, inner) + [(" │", "dim")])
     lines.append([(" ", None), ("╰" + "─" * (width - 2) + "╯", "dim")])
     lines.append([])
-    lines.append(fit([("  ", None)] + hint_line(app), max(cols - 1, 1)))
+    lines.append(fit([("  ", None)] + hint_line(app, cols), max(cols - 1, 1)))
     return lines[:rows]
 
 
@@ -483,8 +566,12 @@ KEYS = {
 }
 
 
-def parse_keys(data):
-    """Split raw terminal input into key names."""
+def split_keys(data):
+    """Split raw terminal input into key names.
+
+    Returns (keys, rest). `rest` is the start of an escape sequence whose
+    end has not arrived yet.
+    """
     keys, index = [], 0
     while index < len(data):
         for sequence, name in KEYS.items():
@@ -494,32 +581,57 @@ def parse_keys(data):
                 break
         else:
             char = data[index]
-            index += 1
-            if char == "\x1b":
-                if index < len(data) and data[index] in "[O":
-                    # An escape sequence we do not use: swallow it whole.
-                    index += 1
-                    while index < len(data) and not ("@" <= data[index] <= "~"):
-                        index += 1
-                    index += 1
-                else:
-                    keys.append("esc")
-            elif char.isprintable():
-                keys.append(char)
+            if char != "\x1b":
+                index += 1
+                if char.isprintable():
+                    keys.append(char)
+            elif index + 1 >= len(data):
+                return keys, data[index:]
+            elif data[index + 1] in "[O":
+                end = index + 2
+                while end < len(data) and not "@" <= data[end] <= "~":
+                    end += 1
+                if end >= len(data):
+                    return keys, data[index:]
+                index = end + 1  # a complete sequence we do not use
+            else:
+                keys.append("esc")
+                index += 1
+    return keys, ""
+
+
+def parse_keys(data):
+    """split_keys() for input that is known to be complete."""
+    keys, rest = split_keys(data)
+    if rest == "\x1b":
+        keys.append("esc")
     return keys
 
 
-def read_keys(fd, timeout):
-    ready, _, _ = select.select([fd], [], [], timeout)
-    if not ready:
-        return []
-    data = os.read(fd, 1024)
-    if not data:
-        raise EOFError
-    # A lone ESC may be the start of an arrow key still in transit.
-    if data == b"\x1b" and select.select([fd], [], [], 0.05)[0]:
-        data += os.read(fd, 1024)
-    return parse_keys(data.decode("utf-8", "ignore"))
+class KeyReader:
+    """Reads keys from a terminal, holding on to partial input between reads.
+
+    An arrow key can arrive in two pieces, and so can a UTF-8 character.
+    """
+
+    def __init__(self, fd):
+        self.fd = fd
+        self.decoder = codecs.getincrementaldecoder("utf-8")("ignore")
+        self.pending = ""
+
+    def read(self, timeout):
+        wait = 0.05 if self.pending else timeout
+        if select.select([self.fd], [], [], wait)[0]:
+            data = os.read(self.fd, 1024)
+            if not data:
+                raise EOFError
+            keys, self.pending = split_keys(self.pending + self.decoder.decode(data))
+            return keys
+        # Nothing followed: a lone ESC was the Escape key, a longer
+        # fragment is a broken sequence and is dropped.
+        keys = ["esc"] if self.pending == "\x1b" else []
+        self.pending = ""
+        return keys
 
 
 def write_result(path, result):
@@ -548,6 +660,7 @@ def run(app, out_path):
         tty.setcbreak(fd)
         sys.stdout.write("\x1b[?1049h\x1b[?25l")
         last = None
+        reader = KeyReader(fd)
         while app.done is None:
             size = shutil.get_terminal_size((80, 24))
             screen = paint(frame(app, size.columns, size.lines), color)
@@ -556,7 +669,7 @@ def run(app, out_path):
                 sys.stdout.write("\x1b[H" + "\x1b[K\r\n".join(screen) + "\x1b[K\x1b[J")
                 sys.stdout.flush()
                 last = screen
-            for key in read_keys(fd, 0.25):
+            for key in reader.read(0.25):
                 app.handle(key)
                 if app.done is not None:
                     break

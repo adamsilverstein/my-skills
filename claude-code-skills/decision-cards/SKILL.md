@@ -96,7 +96,7 @@ What the user sees:
 | `a` `b` `c` | Choose that option and move on | |
 | `Enter` | Accept the recommendation (or keep the earlier answer) and move on | Go |
 | `←` `→` | Previous or next card. A card passed with `→` stays open. | `←` goes back through the cards |
-| `↑` `↓` | Move the highlight; `Enter` then picks it | |
+| `↑` `↓` | Move the highlight; `Enter` then picks it. In a short window the card scrolls to follow it. | Scroll, when the list is taller than the window |
 | `/` | Type an answer or a question of their own | |
 | `Backspace` | Clear the answer on this card | |
 | `1`-`9` | | Jump to that card to change it |

@@ -158,6 +158,36 @@ class InputTest(unittest.TestCase):
         self.assertEqual(decide.parse_keys("\x1b[5~b"), ["b"])
 
 
+class KeyReaderTest(unittest.TestCase):
+    def setUp(self):
+        self.read_fd, self.write_fd = os.pipe()
+        self.reader = decide.KeyReader(self.read_fd)
+
+    def tearDown(self):
+        os.close(self.read_fd)
+        os.close(self.write_fd)
+
+    def send(self, data):
+        os.write(self.write_fd, data)
+        return self.reader.read(0.01)
+
+    def test_arrow_split_across_reads_is_not_a_letter(self):
+        self.assertEqual(self.send(b"a\x1b["), ["a"])
+        self.assertEqual(self.send(b"C"), ["right"])
+        self.assertEqual(self.send(b"\x1b"), [])
+        self.assertEqual(self.send(b"[D"), ["left"])
+
+    def test_lone_escape_arrives_after_a_pause(self):
+        self.assertEqual(self.send(b"\x1b"), [])
+        self.assertEqual(self.reader.read(0.01), ["esc"])
+        self.assertEqual(self.reader.read(0.01), [])
+
+    def test_utf8_character_split_across_reads(self):
+        first, second = "é".encode()[:1], "é".encode()[1:]
+        self.assertEqual(self.send(first), [])
+        self.assertEqual(self.send(second), ["é"])
+
+
 class RenderTest(unittest.TestCase):
     def screens(self, cols, rows):
         app = new_app()
@@ -176,6 +206,54 @@ class RenderTest(unittest.TestCase):
                 self.assertEqual(len(screen), len(screens[0]))
                 bottom = [i for i, line in enumerate(screen) if line.startswith(" ╰")]
                 self.assertEqual(bottom, [len(screens[0]) - 3])
+
+    def test_wide_characters_stay_inside_the_box(self):
+        _, decisions = decide.load(EXAMPLE)
+        wide = "再試行の上限はどこに置くべきですか" * 4
+        decisions[0].update(question=wide, why=wide, pick=wide, name=wide)
+        decisions[0]["options"][0].update(label=wide, detail=wide)
+        app = decide.App(decisions)
+        for _ in range(2):
+            for line in decide.paint(decide.frame(app, 80, 40), color=False):
+                self.assertLess(decide.cells(line), 80)
+                if line.startswith(" │"):
+                    self.assertEqual(decide.cells(line), 73)
+            app.pos = app.count
+
+    def test_short_window_scrolls_to_the_highlighted_option(self):
+        app = new_app()
+        press(app, "right", "right", "right")  # card 4 has three options
+        text = "\n".join(decide.paint(decide.frame(app, 80, 12), color=False))
+        self.assertIn("↑ more above", text)
+        self.assertIn("↓ more below", text)
+        seen = text
+        for _ in range(2):
+            press(app, "down")
+            screen = decide.paint(decide.frame(app, 80, 12), color=False)
+            self.assertLessEqual(len(screen), 12)
+            self.assertTrue(any("▸" in line for line in screen))
+            seen += "\n".join(screen)
+        for label in ("Unit tests only", "Add one end to end test", "Full matrix across every"):
+            self.assertIn(label, seen)
+
+    def test_short_window_scrolls_the_summary(self):
+        _, decisions = decide.load(EXAMPLE)
+        app = decide.App(decisions * 4)
+        app.goto(app.count)
+        seen = ""
+        for _ in range(30):
+            seen += "\n".join(decide.paint(decide.frame(app, 80, 12), color=False))
+            press(app, "down")
+        for number in range(1, 21):
+            self.assertIn(f" {number:>2}  ", seen)
+        self.assertLessEqual(app.scroll, 20)
+
+    def test_long_custom_answer_keeps_the_cursor_visible(self):
+        app = new_app()
+        press(app, "/", *("word " * 40), *"END")
+        hint = decide.paint(decide.frame(app, 80, 32), color=False)[-1]
+        self.assertIn("END█", hint)
+        self.assertLess(decide.cells(hint), 80)
 
     def test_card_content(self):
         first, *_, summary = self.screens(80, 32)
