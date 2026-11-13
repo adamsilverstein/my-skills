@@ -29,7 +29,7 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 | [core-commit](./claude-code-skills/core-commit/SKILL.md) | Write WordPress core commit messages following official guidelines |
 | [feature-manager](./claude-code-skills/feature-manager/SKILL.md) | Track the multi-PR features the user drives on GitHub: registry, stack status, cascade updates from trunk, CI, feedback triage, tracking issue upkeep, watch mode |
 | [local-cleanup](./claude-code-skills/local-cleanup/SKILL.md) | Find and remove local developer leftovers (merged worktrees, idle node_modules, stale wp-env and Docker data, old Downloads, tool caches) with a read-only scan, a size report and per-category approval |
-| [decision-cards](./claude-code-skills/decision-cards/SKILL.md) | Walk through the open decisions on the work in progress one at a time, as "X of Y" text cards with the options and a recommended choice |
+| [decision-cards](./claude-code-skills/decision-cards/SKILL.md) | Walk through the open decisions on the work in progress one at a time, in a one-keypress terminal UI: "X of Y" cards with the options and a recommended choice, arrow keys to move, Esc to cancel |
 | [ci-fixer](./claude-code-skills/ci-fixer/SKILL.md) | Fix failing CI tests on PRs and monitor until all checks pass |
 | [pr-status-review](./claude-code-skills/pr-status-review/SKILL.md) | Review your open PRs in a status table (CI, mergeability, feedback) and suggest what to work on next; optionally sorts unanswered comments and failing CI checks with the Jev model |
 | [commit](./claude-code-skills/commit/SKILL.md) | Create atomic commits with clear, descriptive messages following WordPress core style |
