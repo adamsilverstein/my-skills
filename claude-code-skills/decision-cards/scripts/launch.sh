@@ -93,7 +93,8 @@ case "$choice" in
 		# Split the pane this session runs in, so the cards open right under
 		# the conversation and the pane closes when they are done. A new
 		# window is the fallback when that pane cannot be found.
-		session="${ITERM_SESSION_ID#*:}"
+		session="${ITERM_SESSION_ID:-}"
+		session="${session#*:}"
 		[ "$choice" = iterm-window ] && session=""
 		osascript - "$runner" "$session" >/dev/null <<'APPLESCRIPT' || exit 3
 on run argv
