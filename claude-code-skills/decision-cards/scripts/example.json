@@ -1,0 +1,61 @@
+{
+  "decisions": [
+    {
+      "name": "Retry limit",
+      "question": "Where should the retry limit live?",
+      "why": "Three call sites hard-code 3 today. The upload path needs 5, so the value has to move somewhere before that lands.",
+      "options": [
+        { "label": "Shared constant in config.ts", "detail": "One place to change, no API change." },
+        { "label": "Per-call option with a default of 3", "detail": "Flexible, but every caller grows a parameter." },
+        { "label": "Leave as is, hard-code 5 in the upload path", "detail": "Smallest diff, a fourth copy of the number." }
+      ],
+      "recommended": "A",
+      "pick": "only one caller needs a different value, so an option on every call is more surface than the problem."
+    },
+    {
+      "name": "Error copy",
+      "question": "What should the user see when all retries fail?",
+      "why": "Today the upload path shows a raw status code. The notice component already has a generic failure message.",
+      "options": [
+        { "label": "Write a new message for uploads", "detail": "Most specific, one more string to translate." },
+        { "label": "Reuse the existing notice", "detail": "No new strings, slightly generic wording." }
+      ],
+      "recommended": "A",
+      "pick": "close call, but upload failures are common enough to deserve their own wording."
+    },
+    {
+      "name": "Feature flag",
+      "question": "Should the new retry behavior ship behind a flag?",
+      "why": "The change touches every network call. A flag costs one extra cleanup PR later.",
+      "options": [
+        { "label": "Ship behind the flag", "detail": "Can be turned off without a deploy." },
+        { "label": "Ship it on for everyone", "detail": "Less code, a revert is the only way back." }
+      ],
+      "recommended": "A",
+      "pick": "the blast radius is every request, so a kill switch is cheap insurance."
+    },
+    {
+      "name": "Test coverage",
+      "question": "How far should the tests go?",
+      "why": "The retry helper has unit tests. Nothing exercises it against a real failing server.",
+      "options": [
+        { "label": "Unit tests only", "detail": "Fast, already mostly written." },
+        { "label": "Add one end to end test with a failing endpoint", "detail": "Catches wiring mistakes, adds about a minute to CI." },
+        { "label": "Full matrix across every call site", "detail": "Thorough and slow, likely flaky." }
+      ],
+      "recommended": "B",
+      "pick": "one real failure path covers the wiring without the cost of the matrix."
+    },
+    {
+      "name": "PR split",
+      "question": "One pull request or two?",
+      "why": "The config move is mechanical and touches 14 files. The upload change is 40 lines and needs careful review.",
+      "options": [
+        { "label": "One PR", "detail": "Lands together, the careful part hides in the noise." },
+        { "label": "Two PRs, config move first", "detail": "Easier review, one extra round trip." }
+      ],
+      "recommended": "B",
+      "pick": "the reviewer can skim the first and read the second properly."
+    }
+  ]
+}
