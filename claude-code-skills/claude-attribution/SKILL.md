@@ -72,6 +72,7 @@ The post states what was found and what is still unknown. It does not ask the re
 - **End on the last finding or the open item**, stated flat: "Not yet confirmed on a clean install." "Unclear whether this also affects multisite."
 - **Turn a would-be question into a statement of what is unknown.** "Does that match what you're seeing?" becomes nothing at all. "Should this default to on?" becomes "Whether this should default to on is undecided."
 - **No @mention asking for input, no "What do you think?", no "Thoughts?", no "let me know".** Not inside the quote, not after it.
+- **No @mentions inside the quote.** A mention notifies the person, which is a request for their attention even when the sentence is a statement. Write "the reporter" or "the reviewer"; "Only @jdoe can confirm it" becomes "Only the reporter can confirm it."
 - **Bring the questions to Adam instead.** When a draft would have benefited from a question - something only the reporter can confirm, a decision that needs a maintainer - list those in the chat reply alongside the review-gate alert, worded so he can paste one in. He decides whether to ask.
 - **If Adam dictates a question, it goes at the left margin, in his words**, after the quote.
 
