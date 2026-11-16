@@ -54,7 +54,7 @@ The byline says which model wrote the text, in parentheses after the name: `Clau
 - **Read the model from your own session, every time.** The environment section of your system prompt states the model you are running as ("You are powered by the model named ..."). Use that. The examples in this skill say "Opus 5.5" because that is what wrote them - do not copy it, and do not carry over the model named in an earlier draft, an older comment in the thread, or a commit trailer.
 - **Family and version, nothing else.** "Opus 5.5", not "claude-opus-5-5", not "Claude Opus 5.5 (1M context)". If all you have is a model ID, convert it: `claude-opus-5-5` becomes "Opus 5.5".
 - **If the session does not state the model, write plain "Claude".** A missing version is fine. A guessed one is a false statement under Adam's name.
-- **Subagents:** if a subagent on a different model drafted the text, name the model that wrote it when you know it. Otherwise name your own - you are the one posting it.
+- **Subagents:** if a subagent on a different model drafted the text, name the model that wrote it when you know it. When you do not, write plain "Claude" - your own model did not write those words.
 - **Once per byline.** The header names the model. So does the AI Use footer, because a reader may see only one of them. The body does not mention it.
 
 ## The left margin is Adam's
@@ -63,7 +63,7 @@ Anything outside the quote bar reads as Adam speaking in person. That is the who
 
 - **Put words at the left margin only when Adam said them** - in this conversation, or in the draft file during the review window. His take, his decision, his thanks, his question. Tidy them into a sentence if he dictated them roughly; do not add to them.
 - **Do not write Adam's opinion, plan, or reaction for him.** "I lean toward the `<select>` here", "this was news to me", "I'll get a patch up today" are his to say. If he has not said them, the post starts at the header. Most drafts post without Adam editing them, so an invented left-margin line goes out as a statement he never made.
-- **The byline is the one exception**: it sits at the left margin and Claude writes it. Keep it to facts about what Claude did.
+- **Three unquoted lines are Claude's to write**: the byline, the AI Use footer, and the "Generated with" line. Keep them to facts about what Claude did. "I will review and test." in the footer is a standing commitment Adam has made for every PR with Claude-written code, so it needs no fresh say-so from him.
 
 ## No questions to the reader
 
@@ -71,10 +71,10 @@ The post states what was found and what is still unknown. It does not ask the re
 
 - **End on the last finding or the open item**, stated flat: "Not yet confirmed on a clean install." "Unclear whether this also affects multisite."
 - **Turn a would-be question into a statement of what is unknown.** "Does that match what you're seeing?" becomes nothing at all. "Should this default to on?" becomes "Whether this should default to on is undecided."
-- **No @mention asking for input, no "What do you think?", no "Thoughts?", no "let me know".** Not inside the quote, not after it.
+- **No @mention asking for input, no "What do you think?", no "Thoughts?", no "let me know" of Claude's own.** Not inside the quote, not after it.
 - **No @mentions inside the quote.** A mention notifies the person, which is a request for their attention even when the sentence is a statement. Write "the reporter" or "the reviewer"; "Only @jdoe can confirm it" becomes "Only the reporter can confirm it."
 - **Bring the questions to Adam instead.** When a draft would have benefited from a question - something only the reporter can confirm, a decision that needs a maintainer - list those in the chat reply alongside the review-gate alert, worded so he can paste one in. He decides whether to ask.
-- **If Adam dictates a question, it goes at the left margin, in his words**, after the quote.
+- **If Adam dictates a question, it goes at the left margin, in his words**, after the quote - with the @mention if he named someone. That is the only way a question or a mention gets into the post.
 
 This overrides the "end with a question" habit described in adams-voice for anything Claude drafts.
 
@@ -167,14 +167,15 @@ Too much: "🚀 Behold! My silicon apprentice has spoken! 🤖✨"
 
 ## "Generated with" lines
 
-A "Generated with Claude Code" line, with a session link when the harness supplies one, is appropriate on PRs, issues, and full-length comments. Include it:
+A "Generated with Claude Code" line, with a session link when the harness supplies one, is the tool's stamp:
 
-- **Always when the project's AI policy asks for one.** Check the repo's contributing docs or AI policy before a first post there, and use the wording the policy gives.
-- **Whenever the harness supplies one** for the kind of post being written.
+- **PRs, issues, Trac tickets: include it.**
+- **Full-length comments and review replies: include it when the project's AI policy asks for one or the harness supplies one** for that kind of post.
+- **Where a project's AI policy gives its own wording, use that wording.** Check the repo's contributing docs or AI policy before a first post there.
 
 It goes at the very end, unquoted - after the AI Use section on a PR or issue. It sits alongside the byline and never replaces it: the byline marks which words are Claude's and names the model, the generated-with line is the tool's stamp.
 
-Leave it off a one-line reply such as "Fixed in a1b2c3d." Those carry no header, no quote, and no trailer, and they skip the review gate (see [post-review-gate](../post-review-gate/SKILL.md)).
+Leave it off a one-line reply Adam would write himself, such as "Fixed in a1b2c3d." Those carry no header, no quote, and no trailer, and they skip the review gate. A one-line reply that carries Claude's own claim or opinion is not one of these - it passes through the authorship test below and gets the header and quote (see [post-review-gate](../post-review-gate/SKILL.md)).
 
 ## Short replies still skip the header
 
