@@ -139,7 +139,7 @@ Follow the repo template headings if present. Within them:
 - AI-flavored openers and summaries: "This PR introduces a comprehensive...", "Great question!", restating the whole diff, "In summary" wrap-ups.
 - Marketing adjectives: robust, comprehensive, seamless, powerful, elegant.
 - Overclaiming: stating untested behavior as fact, or "this fixes everything" confidence. Adam scopes every claim to what he observed.
-- Emoji (a lone ":)" is the ceiling), exclamation pileups, signature lines ("Generated with...", "Created by...").
+- Emoji (a lone ":)" is the ceiling), exclamation pileups, hand-written signature lines ("Created by...", "Sent from..."). The tool's "Generated with Claude Code" line is not one of these - see [claude-attribution](../claude-attribution/SKILL.md) for when it belongs.
 - Long bullet lists where every bullet starts with a bolded label.
 - Hiding URLs behind link text in issues/comments; he pastes them.
 - Posting a multi-paragraph Claude-drafted response with no attribution header, or writing "I"/"my" below one.

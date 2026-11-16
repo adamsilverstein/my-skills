@@ -17,14 +17,14 @@ Pairs with [adams-voice](../adams-voice/SKILL.md), which governs how the writing
 
 ## Quick reference
 
-| Posting | Byline header | Block quote | AI Use footer |
-|---|---|---|---|
-| Comment, review reply, Trac comment | Yes | Yes | No |
-| Issue, Trac ticket | Yes | Yes | Yes |
-| PR description | Yes | Yes | Yes, with "I will review and test." when the PR has code |
-| One-line reply Adam would write himself ("Updated in a1b2c3d.") | No | No | No |
+| Posting | Byline header | Block quote | AI Use footer | "Generated with" line |
+|---|---|---|---|---|
+| Comment, review reply, Trac comment | Yes | Yes | No | When the project policy or harness calls for it |
+| Issue, Trac ticket | Yes | Yes | Yes | Yes |
+| PR description | Yes | Yes | Yes, with "I will review and test." when the PR has code | Yes |
+| One-line reply Adam would write himself ("Fixed in a1b2c3d.") | No | No | No | No |
 
-Every byline and every footer names the model. One byline per post: no second "written with Claude" line at the bottom of a comment.
+Every byline and every footer names the model. One byline per post: no second hand-written "written with Claude" line at the bottom of a comment. The "Generated with" line is separate, see below.
 
 ## Shape of an attributed post
 
@@ -164,7 +164,17 @@ Too much: "🚀 Behold! My silicon apprentice has spoken! 🤖✨"
 - **Lists, tables, and images** all work behind `> ` - prefix every line.
 - **Trac** uses the same `>` citation prefix, so the shape carries over unchanged.
 - **Very long output** (more than a screen or two) can go inside a `<details>` block on GitHub, with the byline as the `<summary>`. Use this sparingly - a collapsed reply is easy to miss.
-- **Tool-added trailers stay outside the quote, at the very end.** If the harness requires a "Generated with Claude Code" line or a session link on a PR, it goes after the AI Use section, unquoted. It does not replace the byline, and it is not a reason to add another one.
+
+## "Generated with" lines
+
+A "Generated with Claude Code" line, with a session link when the harness supplies one, is appropriate on PRs, issues, and full-length comments. Include it:
+
+- **Always when the project's AI policy asks for one.** Check the repo's contributing docs or AI policy before a first post there, and use the wording the policy gives.
+- **Whenever the harness supplies one** for the kind of post being written.
+
+It goes at the very end, unquoted - after the AI Use section on a PR or issue. It sits alongside the byline and never replaces it: the byline marks which words are Claude's and names the model, the generated-with line is the tool's stamp.
+
+Leave it off a one-line reply such as "Fixed in a1b2c3d." Those carry no header, no quote, and no trailer, and they skip the review gate (see [post-review-gate](../post-review-gate/SKILL.md)).
 
 ## Short replies still skip the header
 
@@ -226,6 +236,8 @@ _Claude Code (Opus 5.5) wrote the fix and this description, summary below:_
 ## AI Use
 
 Claude Code (Opus 5.5) did the typing here, I did the asking. I will review and test.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 ## Anti-patterns
@@ -237,7 +249,8 @@ Claude Code (Opus 5.5) did the typing here, I did the asking. I will review and 
 - Leaving the drafted body unquoted, or quoting only the first paragraph and letting the rest run at the left margin.
 - Burying Adam's own words inside the quote.
 - Nesting a third party's quote inside the Claude quote - `> >` reads as noise.
-- A second byline at the bottom of a comment ("Comment written with Claude Code.") on top of the header.
+- A second hand-written byline at the bottom of a comment ("Comment written with Claude Code.") on top of the header.
+- Dropping the "Generated with" line from a PR, issue, or full comment when the project policy or harness calls for it. Adding one to a "Fixed in a1b2c3d." reply.
 - The identical byline on every comment across a thread or a week of threads.
 - A playful header on a security issue, a data-loss report, or a contentious thread.
 - Dropping "I will review and test." from a PR that contains Claude-written code.

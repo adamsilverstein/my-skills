@@ -41,7 +41,7 @@ Scripts live in this skill's `scripts/` directory (`~/.claude/skills/post-review
    ```
    Kinds: `comment`, `review-reply`, `issue`, `pr`, `trac-ticket`, `trac-comment`. The log is `~/.claude/posts-log.md`. Give Adam the URL in chat, and say whether it went out reviewed or not.
 
-**Short replies skip the file and the wait, not the record.** A short reply is one sentence that states something Adam already knows or has already decided: a commit hash, a thanks, a merge, a "done" ("Updated in a1b2c3d.", "Thanks, merging."). It posts directly with no draft file and is logged with `review: short` and no draft path. A reply that carries an opinion, a claim about the code, or a question goes through the gate however short it is.
+**Short replies skip the file and the wait, not the record.** A short reply is one sentence that states something Adam already knows or has already decided: a commit hash, a thanks, a merge, a "done" ("Fixed in a1b2c3d.", "Updated in a1b2c3d.", "Thanks, merging."). It carries no attribution header and no "Generated with" line. It posts directly with no draft file and is logged with `review: short` and no draft path. A reply that carries an opinion, a claim about the code, or a question goes through the gate however short it is.
 
 ## Guardrails
 
