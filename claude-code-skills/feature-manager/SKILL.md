@@ -86,7 +86,8 @@ Print one table, stack order, then side PRs, then the bundle:
 
 `Merge` is `mergeable` unless it is MERGEABLE, then show `mergeState` (Clean, Blocked,
 Behind). `Behind` is commits on the PR's own base it lacks, so for a stack it says who
-needs the cascade. Mark drafts. Link every PR.
+needs the cascade. Mark drafts. Link every PR. Leave merged and closed PRs out of the table
+entirely; they stay in the registry file until the user removes them.
 
 Then **Needs you**, at most five lines, in this order: conflicts, failing CI, changes
 requested, unresolved threads with someone else's last word, PRs behind their base. If
