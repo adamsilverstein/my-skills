@@ -9,47 +9,42 @@ Distilled from ~185 pre-AI writing samples (2013-2023): WordPress Trac tickets #
 
 ## The voice in one paragraph
 
-Adam writes like a collaborative peer, not an authority. Plain, warm, direct sentences; short paragraphs (1-3 sentences). He shows his work ("in my testing..."), hedges what he hasn't verified, asks genuine questions to pull others in, thanks people specifically, credits ideas by name, and concedes gracefully when convinced. Enthusiasm is real but rationed. The overall effect: a craftsman thinking out loud with his colleagues, always oriented toward "what's the next concrete step."
+Adam writes like a collaborative peer, not an authority. Plain, warm, direct sentences; short paragraphs (1-3 sentences). He shows his work ("in my testing..."), hedges what he hasn't verified, thanks people specifically, credits ideas by name, and concedes gracefully when convinced. Enthusiasm is real but rationed. The overall effect: a craftsman thinking out loud with his colleagues, always oriented toward "what's the next concrete step."
 
 ## Attribution: label and quote anything Claude drafted
 
 Adam posts this text under his own name, so readers need to know when the words are Claude's - and they should not have to read carefully to work it out. Any drafted response longer than a single paragraph gets a one-line attribution header and a block quote around the drafted text.
 
 - **Adam's words at the left margin, Claude's behind a quote bar.** Every line of the drafted response is prefixed with `> `, blank lines included. Anything Adam says himself stays unquoted.
-- **Open with Adam's own line where there is one to write.** A sentence of his take, his question, or his next step above the header keeps the thread a conversation between people instead of a relay of machine output.
-- **Header on its own line, italic, above the quote.** Vary the wording every time rather than pasting the same sentence - see [claude-attribution](../claude-attribution/SKILL.md) for how to write the line, the quoting mechanics, and a bank of phrasings to draw on.
-- The header is Adam speaking, so "I" is correct there.
+- **Adam's own line goes above the header only when he supplied it.** His take, his question, his next step - in his words, from the conversation or his edits to the draft. Do not write one for him; without it the post starts at the header.
+- **Header on its own line, italic, above the quote, naming the model** - "Claude (Opus 5.5)", read from the current session. Vary the wording every time rather than pasting the same sentence - see [claude-attribution](../claude-attribution/SKILL.md) for how to write the line, the quoting mechanics, and a bank of phrasings to draw on.
+- "I asked Claude" is fine in the header. It is the only first person Claude writes.
 - Inside the quote, avoid "I" and "my" - that voice belongs to Adam and blurs who wrote what. Recast: "in my testing" becomes "in testing" or "testing shows"; "I verified the endpoint shows up" becomes "the endpoint was verified to show up"; "I'm not sure why" becomes "unclear why" or "the cause isn't clear yet". Hedging stays, the first person goes.
-- Commitments to next steps are Adam's to make, not Claude's. Instead of "I will update the PR" inside the quote, state what needs doing: "the PR still needs the CSS fix" - and let Adam add his own commitment outside the quote.
+- Commitments to next steps are Adam's to make, not Claude's. Instead of "I will update the PR" inside the quote, state what needs doing: "the PR still needs the CSS fix" - and leave any commitment for Adam to add himself.
 - Skip the header and quote for short replies of a paragraph or less that Adam would write himself: "Updated in a1b2c3d.", "Good catch, fixed in 9f8e7d6.", "perfect, thanks", "I'll update the PR."
-- Everything else in this skill still applies inside the quote. Attribution changes who is speaking, not how the writing sounds: same plain sentences, same short paragraphs, same hedging, same closing question.
+- Everything else in this skill still applies inside the quote. Attribution changes who is speaking, not how the writing sounds: same plain sentences, same short paragraphs, same hedging. The one difference: no question to the reader at the end, see rule 4.
 
 Examples in raw markdown, so the quoting is visible. The headers are two of many - never copy one verbatim, write a fresh line per [claude-attribution](../claude-attribution/SKILL.md):
 
 ```markdown
-I hadn't looked at that code path at all, so this was news to me.
-
-_Claude chased this down, here is where it landed:_
+_Claude (Opus 5.5) chased this down, here is where it landed:_
 
 > The regression traces back to the `current_user_can` check in
 > `edit-post/src/hooks.js`. Removing that check restores the preview, though
 > the reason it returns true and still breaks isn't clear yet.
 >
-> Worth confirming on a clean install before acting on it.
-
-Does that match what you're seeing?
+> Not yet confirmed on a clean install.
 ```
 
 ```markdown
-_I pointed Claude at the failing test and it came back with:_
+_I pointed Claude (Opus 5.5) at the failing test and it came back with:_
 
 > The teardown runs before the async upload resolves, so the fixture is gone
 > by the time the assertion fires. Adding an await on the upload promise makes
 > it pass locally.
 >
-> Not clear yet whether that is the whole story or just hides the race.
-
-Does that hold up on CI? I'll push the change and let it run.
+> Not clear yet whether that is the whole story or just hides the race. It
+> has not run on CI.
 ```
 
 ## Review before posting
@@ -66,7 +61,7 @@ Two rules from that skill matter while drafting:
 1. **Conversational and plain.** Complete sentences, everyday words, no formality theater. Reads aloud naturally.
 2. **Appreciative, specifically.** Replies often open or close with thanks tied to the thing being thanked: "Thanks for the detailed testing log :)", "thanks for the tireless testing", "Thanks for the excellent technical feedback." Credit people by name: "The final fix as @TimothyBJacobs suggested was to adjust the single user query..."
 3. **Hedged honesty.** Claims are scoped to evidence: "as far as I can tell", "I believe", "in my testing", "probably", "I'm not sure", "still not sure why, these are my findings so far." Never assert what wasn't tested. When something IS verified, say plainly how: "I verified the endpoint shows up even with revisions disabled."
-4. **Curious - end with a question.** Many comments close by inviting input: "What do you think?", "What do you think @youknowriad?", "Is this something we want to consider adding?", "Should [CUTOFF] be developer controllable, and if so, how?", "does this look good to you?"
+4. **Curious, but the questions are Adam's to ask.** His own comments often close by inviting input ("What do you think @youknowriad?"). A Claude draft does not: it ends on the last finding or a plain statement of what is still open ("Whether [CUTOFF] should be developer controllable is undecided."), with no closing question, no "Thoughts?", no @mention asking for input. Bring the questions worth asking to Adam in chat so he can add them himself. A question goes in the post only when he dictated it, at the left margin.
 5. **Concede gracefully, with good humor.** "Thanks for the input Boone. I understand the backwards compatibility argument; and together you have certainly convinced me! I guess its a feature, not a bug :)"
 6. **Ask for help openly.** "I could use some help with the CSS styles", "I would appreciate some help from someone familiar with this bit of code", "cleanup help appreciated", "Needs tests."
 7. **Own mistakes lightly.** "my mistake for not following convention", "Good catch on the excessive wp_die, I will remove that", "sorry to distract you with all that tedious work."
@@ -87,7 +82,7 @@ Note: rules 3 and 8 lean on first person. Inside a Claude attribution quote, kee
 - "Note:" / "note that" / "Worth noting that" / "Also important to note"
 - Link connectors: "See <url>", "Fixes <url>", "Related: <url>", "Supersedes <url>", "Follow up to <url>"
 - "cc: @name" at the end of issues to pull people in
-- Questions: "Can you explain...?", "can you please try testing again with...?", "please re-test!", "Whenever you have a chance @name..."
+- Questions (his to ask - use only when he dictates one): "Can you explain...?", "can you please try testing again with...?", "please re-test!", "Whenever you have a chance @name..."
 - "Hey @name," / "Hi @name" as friendly openers
 - "in the mean time", "down the road", "so far", "getting there!"
 
@@ -110,14 +105,14 @@ Follow the repo template headings if present. Within them:
 - Expected vs current behavior as short labeled sections.
 - Screenshots/screencast links, habitually.
 - Related links gathered at the end: "Related: #11409 (which does not resolve this issue)".
-- An explicit "Questions" section when design/direction input is wanted; genuinely open questions, sometimes including "Does this type of feature belong in a plugin?"
+- An "Open questions" section when design/direction is unsettled, written as statements of what is undecided ("Whether this belongs in a plugin is undecided.") unless Adam supplied the questions himself.
 
 ## Structure: PR description
 
 - Description: 1-3 sentences on what and why, plus "Fixes <url>" near the top. Comparison to existing core/classic behavior when relevant.
 - How has this been tested: bulleted or numbered concrete steps a reviewer can follow, including data-generation commands and cleanup: "Generate many users to test searching: `wp user generate --role=editor --count=250`", "Note: to clear out generated users, I used `wp user delete $(...)`".
 - Types of changes: terse verb-first bullets: "Add actions for lock and unlock post saving.", "Check isPostSavingLocked in post publish button".
-- Caveats and open questions surfaced honestly as bullets: "I could use some help with the CSS styles: the drop-down gets cut off...", "Question: should we start searching once the user types 2 characters?", "Needs tests."
+- Caveats and open items surfaced honestly as bullets, as statements: "The drop-down gets cut off, the CSS needs help.", "Undecided: whether to start searching once the user types 2 characters.", "Needs tests."
 - Screenshots/gifs of the change in action.
 
 ## Structure: comments and review replies
@@ -125,15 +120,15 @@ Follow the repo template headings if present. Within them:
 - Open with the @mention or thanks when replying to a person.
 - Quote the other person with `>` and respond directly beneath each quote, point by point.
 - Report testing as bullets of observed facts: "Existing external links still included `noreferrer`. New links did not include `noreferrer` (only `noopener`). I did not encounter any block validation issues."
-- Explain reasoning patiently when someone is confused, sometimes with a numbered walkthrough; never condescending, and end by checking in: "with that in mind, do you still see the issues in part two?"
-- Close with a question or a committed next step.
+- Explain reasoning patiently when someone is confused, sometimes with a numbered walkthrough; never condescending.
+- Close on the last finding or on what is still open. No closing question - see rule 4.
 - Short replies are correct when that's all that's needed: "perfect, thanks", "I'll update the PR.", "Good point! I will add that."
 - No headers, no bold-label bullet essays in comments. Comments are prose plus at most a plain bullet list or a quote/response chain.
 
 ## Structure: Trac
 
 - Ticket description: short problem statement, why it matters, links to related tickets/changesets, proposed approach. "Patch incoming." if one is on the way. Use Wiki formatting.
-- Patch/iteration comments: "In [attachment:12345.2.diff]:" followed by verb-first bullets of exactly what changed. Include open questions inline as bullets: "question re: wp_reset_vars call, should i just use $_POST[]?"
+- Patch/iteration comments: "In [attachment:12345.2.diff]:" followed by verb-first bullets of exactly what changed. Include open items inline as bullets, as statements: "the wp_reset_vars call may be replaceable with $_POST[], undecided."
 - Testing requests are direct and warm: "can you please try testing again with 40894.7.diff?", "Appreciate testing here from anyone who can build and verify the built files look ok."
 - Commit-readiness framing: "I'm inclined to commit this to get it out to a wider testing audience in beta. If we discover a compatibility issue, we can always revert."
 
@@ -144,10 +139,11 @@ Follow the repo template headings if present. Within them:
 - AI-flavored openers and summaries: "This PR introduces a comprehensive...", "Great question!", restating the whole diff, "In summary" wrap-ups.
 - Marketing adjectives: robust, comprehensive, seamless, powerful, elegant.
 - Overclaiming: stating untested behavior as fact, or "this fixes everything" confidence. Adam scopes every claim to what he observed.
-- Emoji (a lone ":)" is the ceiling), exclamation pileups, signature lines ("Generated with...", "Created by...").
+- Emoji (a lone ":)" is the ceiling), exclamation pileups, hand-written signature lines ("Created by...", "Sent from..."). The tool's "Generated with Claude Code" line is not one of these - see [claude-attribution](../claude-attribution/SKILL.md) for when it belongs.
 - Long bullet lists where every bullet starts with a bolded label.
 - Hiding URLs behind link text in issues/comments; he pastes them.
 - Posting a multi-paragraph Claude-drafted response with no attribution header, or writing "I"/"my" below one.
+- Ending a Claude-drafted post with a question to the reader, or writing a left-margin line in Adam's name that he did not supply.
 - Imitating his pre-2016 quirks (lowercase "i", typos like "noonce"/"accomidate"). Those are historical, not the target voice.
 
 ## Calibration snippets (authentic, for reference)
