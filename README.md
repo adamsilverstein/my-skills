@@ -24,7 +24,7 @@ Skills are reusable prompts and workflows that extend Claude Code's capabilities
 | Skill | Description |
 |-------|-------------|
 | [adams-voice](./claude-code-skills/adams-voice/SKILL.md) | Write GitHub issues, PRs, comments, and Trac tickets in Adam's authentic voice |
-| [claude-attribution](./claude-code-skills/claude-attribution/SKILL.md) | Block quote and label anything Claude drafted on Adam's behalf, with a varied byline that names the model, and no questions to the reader |
+| [claude-attribution](./claude-code-skills/claude-attribution/SKILL.md) | Block quote and label anything Claude drafted on Adam's behalf, with a varied byline that names the model, an optional intro in his voice, and nothing after the quote |
 | [post-review-gate](./claude-code-skills/post-review-gate/SKILL.md) | Draft posts to a file, alert Adam, wait up to five minutes for edits, post, and keep a log of everything posted on his behalf |
 | [core-commit](./claude-code-skills/core-commit/SKILL.md) | Write WordPress core commit messages following official guidelines |
 | [feature-manager](./claude-code-skills/feature-manager/SKILL.md) | Track the multi-PR features the user drives on GitHub: registry, stack status, cascade updates from trunk, CI, feedback triage, tracking issue upkeep, watch mode |
