@@ -16,7 +16,7 @@ Adam writes like a collaborative peer, not an authority. Plain, warm, direct sen
 Adam posts this text under his own name, so readers need to know when the words are Claude's - and they should not have to read carefully to work it out. Any drafted response longer than a single paragraph gets a one-line attribution header and a block quote around the drafted text.
 
 - **Adam's words at the left margin, Claude's behind a quote bar.** Every line of the drafted response is prefixed with `> `, blank lines included. Anything Adam says himself stays unquoted.
-- **A short intro can go above the header, and nothing goes below the quote.** One or two sentences in Adam's voice: who it is for, the upshot, a question when there is a real one. It is the part readers actually reach and the part Adam reviews most closely. Use his words when he gave them, do not invent his opinion or a commitment, and skip the intro when it has nothing to say. See "The intro" in [claude-attribution](../claude-attribution/SKILL.md).
+- **A short intro can go above the header, and no prose goes below the quote.** One or two sentences in Adam's voice: who it is for, the upshot, a question when there is a real one. It is the part readers actually reach and the part Adam reviews most closely. Use his words when he gave them, do not invent his opinion or a commitment, and skip the intro when it has nothing to say. The only things that follow the quote are the `## AI Use` section on a PR or issue and the tool's "Generated with" line where one is called for. See "The intro" in [claude-attribution](../claude-attribution/SKILL.md).
 - **Header on its own line, italic, above the quote, naming the model** - "Claude (Opus 5.5)", read from the current session. Vary the wording every time rather than pasting the same sentence - see [claude-attribution](../claude-attribution/SKILL.md) for how to write the line, the quoting mechanics, and a bank of phrasings to draw on.
 - "I asked Claude" is fine in the header. It is the only first person Claude writes.
 - Inside the quote, avoid "I" and "my" - that voice belongs to Adam and blurs who wrote what. Recast: "in my testing" becomes "in testing" or "testing shows"; "I verified the endpoint shows up" becomes "the endpoint was verified to show up"; "I'm not sure why" becomes "unclear why" or "the cause isn't clear yet". Hedging stays, the first person goes.
@@ -121,7 +121,7 @@ Follow the repo template headings if present. Within them:
 - Quote the other person with `>` and respond directly beneath each quote, point by point.
 - Report testing as bullets of observed facts: "Existing external links still included `noreferrer`. New links did not include `noreferrer` (only `noopener`). I did not encounter any block validation issues."
 - Explain reasoning patiently when someone is confused, sometimes with a numbered walkthrough; never condescending.
-- Close on the last finding or on what is still open. Nothing after the quote, and a real question goes in the intro - see rule 4.
+- Close on the last finding or on what is still open. No prose after the quote, and a real question goes in the intro - see rule 4.
 - Short replies are correct when that's all that's needed: "perfect, thanks", "I'll update the PR.", "Good point! I will add that."
 - No headers, no bold-label bullet essays in comments. Comments are prose plus at most a plain bullet list or a quote/response chain.
 
@@ -143,7 +143,7 @@ Follow the repo template headings if present. Within them:
 - Long bullet lists where every bullet starts with a bolded label.
 - Hiding URLs behind link text in issues/comments; he pastes them.
 - Posting a multi-paragraph Claude-drafted response with no attribution header, or writing "I"/"my" below one.
-- Any text after the quote in a Claude-drafted comment, above all a closing question. A question asked to round the post off rather than because the answer is needed.
+- Any prose after the quote in a Claude-drafted comment, above all a closing question. A question asked to round the post off rather than because the answer is needed.
 - An intro that states an opinion or makes a commitment in Adam's name that he did not supply.
 - Imitating his pre-2016 quirks (lowercase "i", typos like "noonce"/"accomidate"). Those are historical, not the target voice.
 

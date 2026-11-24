@@ -33,7 +33,7 @@ The parts, in order:
 1. **The intro, at the left margin - optional.** A sentence or two in Adam's voice: who it is for, the upshot, and the question if there is a real one. See "The intro" below. Skip it when there is nothing for it to say, and start at the header.
 2. **The byline header, at the left margin.** Italic, one line, names Claude and the model.
 3. **The Claude-drafted body, block quoted.** Every line prefixed with `> `, including blank lines between paragraphs, so the quote bar runs the full height of the response.
-4. **Nothing after the quote.** The post ends where the body ends - on the last finding, or on a plain statement of what is still open. No closing line, no question, no sign-off. (On a PR or issue, the `## AI Use` section and the "Generated with" line follow, unquoted. Those are the only things that do.)
+4. **No prose after the quote.** The post ends where the body ends - on the last finding, or on a plain statement of what is still open. No closing line, no question, no sign-off. The only things that can follow, unquoted, are the fixed trailers: the `## AI Use` section on a PR or issue, and the "Generated with" line wherever the Quick reference calls for one.
 
 Raw markdown:
 
@@ -69,11 +69,11 @@ Anything outside the quote bar reads as Adam speaking in person. The intro is th
 - **No intro is fine.** It is not a slot to fill. When the byline and the quote say everything, the post starts at the byline.
 - **Claude also writes three unquoted lines of its own**: the byline, the AI Use footer, and the "Generated with" line. Keep them to facts about what Claude did. "I will review and test." in the footer is a standing commitment Adam has made for every PR with Claude-written code, so it needs no fresh say-so from him.
 
-## Nothing after the quote, and no question for the sake of one
+## No prose after the quote, and no question for the sake of one
 
 Posts used to end with a question below the quote, every time. It read as a template being filled in - often there was no real question behind it - and a reader who stops at a long quote never reaches it anyway.
 
-- **The quote is the last thing in a comment.** No question, no "let me know", no "Thoughts?", no thanks, no summary line after it.
+- **The quote is the last prose in a comment.** No question, no "let me know", no "Thoughts?", no thanks, no summary line after it. A "Generated with" line, when the project policy or harness calls for one, is the tool's stamp rather than prose and still goes at the very end.
 - **Inside the quote, state what is unknown instead of asking.** End on the last finding or the open item, flat: "Not yet confirmed on a clean install." "Whether this should default to on is undecided."
 - **A real question goes in the intro.** Real means all three: the answer changes what happens next, the reader is the one who can give it, and it is not already answered in the thread or the code. "Does one card showing both match what you expected, or would you rather accept the bold separately?" passes when the design really is open and waiting on that person.
 - **Most posts have no question.** "Does that match what you're seeing?", "What do you think?", "Does this look right to you?" are reflexes, not questions. If dropping it loses nothing, drop it.
@@ -261,7 +261,7 @@ Claude Code (Opus 5.5) did the typing here, I did the asking. I will review and 
 
 - A byline that says only "Claude", when the session states the model.
 - A model name copied from this skill's examples or from an earlier comment instead of read from the session. A guessed version.
-- Anything after the quote in a comment: a closing question, an @mention asking for input, "let me know", a thanks, a wrap-up line.
+- Prose after the quote in a comment: a closing question, an @mention asking for input, "let me know", a thanks, a wrap-up line. (The `## AI Use` section and a called-for "Generated with" line are trailers, not prose.)
 - A question asked because the post seemed to want one. A question buried inside or below the quote instead of in the intro.
 - An intro on every post, or an intro that restates the quote.
 - Writing Adam's opinion, reaction, or commitment in the intro when he did not say it.
