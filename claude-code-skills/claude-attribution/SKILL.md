@@ -30,10 +30,10 @@ Every byline and every footer names the model. One byline per post: no second ha
 
 The parts, in order:
 
-1. **Adam's own words, at the left margin - only if he supplied them.** See "The left margin is Adam's" below. Most drafts have none, and start at the header.
+1. **The intro, at the left margin - optional.** A sentence or two in Adam's voice: who it is for, the upshot, and the question if there is a real one. See "The intro" below. Skip it when there is nothing for it to say, and start at the header.
 2. **The byline header, at the left margin.** Italic, one line, names Claude and the model.
 3. **The Claude-drafted body, block quoted.** Every line prefixed with `> `, including blank lines between paragraphs, so the quote bar runs the full height of the response.
-4. **The post ends where the body ends** - on the last finding, or on a plain statement of what is still open. Not on a question. (On a PR or issue, the `## AI Use` section follows, unquoted.)
+4. **No prose after the quote.** The post ends where the body ends - on the last finding, or on a plain statement of what is still open. No closing line, no question, no sign-off. The only things that can follow, unquoted, are the fixed trailers: the `## AI Use` section on a PR or issue, and the "Generated with" line wherever the Quick reference calls for one.
 
 Raw markdown:
 
@@ -57,26 +57,28 @@ The byline says which model wrote the text, in parentheses after the name: `Clau
 - **Subagents:** if a subagent on a different model drafted the text, name the model that wrote it when you know it. When you do not, write plain "Claude" - your own model did not write those words.
 - **Once per byline.** The header names the model. So does the AI Use footer, because a reader may see only one of them. The body does not mention it.
 
-## The left margin is Adam's
+## The intro
 
-Anything outside the quote bar reads as Adam speaking in person. That is the whole point of the boundary, so it has to stay true:
+Anything outside the quote bar reads as Adam speaking in person. The intro is the only prose out there, it sits above the byline, and it is the part Adam reads and adjusts most carefully before a post goes out.
 
-- **Put words at the left margin only when Adam said them** - in this conversation, or in the draft file during the review window. His take, his decision, his thanks, his question. Tidy them into a sentence if he dictated them roughly; do not add to them.
-- **Do not write Adam's opinion, plan, or reaction for him.** "I lean toward the `<select>` here", "this was news to me", "I'll get a patch up today" are his to say. If he has not said them, the post starts at the header. Most drafts post without Adam editing them, so an invented left-margin line goes out as a statement he never made.
-- **Three unquoted lines are Claude's to write**: the byline, the AI Use footer, and the "Generated with" line. Keep them to facts about what Claude did. "I will review and test." in the footer is a standing commitment Adam has made for every PR with Claude-written code, so it needs no fresh say-so from him.
+- **It goes first because it is the part that gets read.** A reader who sees a long quoted block often stops there. Whatever they must not miss - who this is for, the upshot, anything they are being asked - goes above the byline.
+- **One or two sentences, in Adam's voice** per [adams-voice](../adams-voice/SKILL.md). "Both of these should be fixed in #87293 now @annezazu - it isn't in the Playground bundle yet." The findings and the detail stay in the quote.
+- **Use what Adam said when he said it.** His take, his decision, his thanks, his question, from the conversation or from his edits to the draft file. Tidy a rough dictation into a sentence; do not add to it.
+- **Do not invent his opinion or a commitment he has not made.** "I lean toward the `<select>` here" and "I'll get a patch up today" are his to say. Drafts post after five minutes whether or not he has read them, so a made-up line goes out as a statement he never made. What the intro can always say without him: who it is addressed to, what was done, where it stands.
+- **@mentions go here**, never inside the quote. A mention notifies the person, which is a request for their attention even when the sentence is a statement. Inside the quote write "the reporter" or "the reviewer".
+- **No intro is fine.** It is not a slot to fill. When the byline and the quote say everything, the post starts at the byline.
+- **Claude also writes three unquoted lines of its own**: the byline, the AI Use footer, and the "Generated with" line. Keep them to facts about what Claude did. "I will review and test." in the footer is a standing commitment Adam has made for every PR with Claude-written code, so it needs no fresh say-so from him.
 
-## No questions to the reader
+## No prose after the quote, and no question for the sake of one
 
-The post states what was found and what is still unknown. It does not ask the reader anything. Asking is how Adam steers a thread, and he does it himself.
+Posts used to end with a question below the quote, every time. It read as a template being filled in - often there was no real question behind it - and a reader who stops at a long quote never reaches it anyway.
 
-- **End on the last finding or the open item**, stated flat: "Not yet confirmed on a clean install." "Unclear whether this also affects multisite."
-- **Turn a would-be question into a statement of what is unknown.** "Does that match what you're seeing?" becomes nothing at all. "Should this default to on?" becomes "Whether this should default to on is undecided."
-- **No @mention asking for input, no "What do you think?", no "Thoughts?", no "let me know" of Claude's own.** Not inside the quote, not after it.
-- **No @mentions inside the quote.** A mention notifies the person, which is a request for their attention even when the sentence is a statement. Write "the reporter" or "the reviewer"; "Only @jdoe can confirm it" becomes "Only the reporter can confirm it."
-- **Bring the questions to Adam instead.** When a draft would have benefited from a question - something only the reporter can confirm, a decision that needs a maintainer - list those in the chat reply alongside the review-gate alert, worded so he can paste one in. He decides whether to ask.
-- **If Adam dictates a question, it goes at the left margin, in his words**, after the quote - with the @mention if he named someone. That is the only way a question or a mention gets into the post.
-
-This overrides the "end with a question" habit described in adams-voice for anything Claude drafts.
+- **The quote is the last prose in a comment.** No question, no "let me know", no "Thoughts?", no thanks, no summary line after it. A "Generated with" line, when the project policy or harness calls for one, is the tool's stamp rather than prose and still goes at the very end.
+- **Inside the quote, state what is unknown instead of asking.** End on the last finding or the open item, flat: "Not yet confirmed on a clean install." "Whether this should default to on is undecided."
+- **A real question goes in the intro.** Real means all three: the answer changes what happens next, the reader is the one who can give it, and it is not already answered in the thread or the code. "Does one card showing both match what you expected, or would you rather accept the bold separately?" passes when the design really is open and waiting on that person.
+- **Most posts have no question.** "Does that match what you're seeing?", "What do you think?", "Does this look right to you?" are reflexes, not questions. If dropping it loses nothing, drop it.
+- **One question, asked once.** Not in the intro and again as an open item in the quote. Several real questions means the post is a discussion starter: say so in the intro and list them in the quote as open items.
+- **Tell Adam about the question in chat**, alongside the review-gate alert: quote the intro and say what the question is waiting on, so he can reword it or cut it.
 
 ## Non-negotiables
 
@@ -187,21 +189,35 @@ The test is who wrote the words, not how long they are. If Claude drafted senten
 
 Raw markdown, so the quoting is visible. Written by Opus 5.5 - a different model writes its own name.
 
-A second opinion, where Adam gave his lean and a question in the conversation ("tell them I lean select for keyboard reasons, and ask Riad which way he leans"):
+A second opinion, where Adam gave his lean and a question in the conversation ("tell them I lean select for keyboard reasons, and ask Riad which way he leans"). The question sits in the intro, nothing follows the quote:
 
 ```markdown
-I lean toward the `<select>` here, mostly for the keyboard behavior.
+I lean toward the `<select>` here, mostly for the keyboard behavior. Which way do you lean @youknowriad?
 
 _I asked Claude (Opus 5.5) to sanity check this, and it says:_
 
 > Both approaches work, but the `<select>` fallback keeps keyboard behavior
 > consistent with core and avoids the focus trap noted in #26476. The
 > autocomplete is nicer above ~50 authors.
-
-Which way do you lean @youknowriad?
 ```
 
-The same comment when Adam said nothing beyond "post the analysis" - no left-margin lines, no question:
+A reply to a tester, where Adam only said "let Anne know these are fixed". The intro says who it is for and where things stand, and carries the one question that is really waiting on her:
+
+```markdown
+Both of these should be fixed in #87293 now @annezazu - it isn't in the Playground bundle yet. Would you rather see the bold as its own suggestion to accept separately?
+
+_Claude (Opus 5.5) worked through both reports, here is what changed:_
+
+> **Edit on a suggestion card.** Reproduced: text written into the
+> suggestion's own note stayed behind as an ordinary note after Reject. Edit
+> is now removed from a suggestion's card, the same way Delete was.
+>
+> **Bolding text you just suggested.** The bold is folded into the addition
+> rather than opening a second suggestion, and the card now says so with an
+> "Add formatting: bold" line.
+```
+
+The first comment again when Adam said nothing beyond "post the analysis" and nothing is waiting on the reader - no intro, no question:
 
 ```markdown
 _Claude (Opus 5.5) compared the two approaches:_
@@ -245,8 +261,10 @@ Claude Code (Opus 5.5) did the typing here, I did the asking. I will review and 
 
 - A byline that says only "Claude", when the session states the model.
 - A model name copied from this skill's examples or from an earlier comment instead of read from the session. A guessed version.
-- Ending the post with a question to the reader, an @mention asking for input, or "let me know".
-- Writing Adam's opinion, reaction, or commitment at the left margin when he did not say it.
+- Prose after the quote in a comment: a closing question, an @mention asking for input, "let me know", a thanks, a wrap-up line. (The `## AI Use` section and a called-for "Generated with" line are trailers, not prose.)
+- A question asked because the post seemed to want one. A question buried inside or below the quote instead of in the intro.
+- An intro on every post, or an intro that restates the quote.
+- Writing Adam's opinion, reaction, or commitment in the intro when he did not say it.
 - Leaving the drafted body unquoted, or quoting only the first paragraph and letting the rest run at the left margin.
 - Burying Adam's own words inside the quote.
 - Nesting a third party's quote inside the Claude quote - `> >` reads as noise.
